@@ -26,11 +26,12 @@
     "react-native": "~0.83.1",
     "react-native-md5": "^1.0.0",
     "react-native-safe-area-context": "^5.6.2",
-    "react-native-webview": "13.10.5"
+    "react-native-webview": "13.16.1"
   },
   "devDependencies": {
     "@babel/core": "^7.28.6",
     "@babel/preset-env": "^7.28.6",
+    "@babel/preset-typescript": "^7.28.5",
     "@babel/runtime": "^7.28.6",
     "@eslint/compat": "^1.4.1",
     "@eslint/js": "^8.1.0",
@@ -63,5 +64,13 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "codegenConfig": {
+    "name": "RNNativeModuleSpec",
+    "type": "modules",
+    "jsSrcsDir": "src/modules",
+    "android": {
+      "javaPackageName": "com.nowcent.ham.rn.nativemodule"
+    }
   }
 }
