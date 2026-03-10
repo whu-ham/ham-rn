@@ -1,11 +1,11 @@
 buildscript {
     extra.apply {
-        set("buildToolsVersion", "34.0.0")
+        set("buildToolsVersion", "36.0.0")
         set("minSdkVersion", 24)
-        set("compileSdkVersion", 35)
-        set("targetSdkVersion", 35)
-        set("ndkVersion", "26.1.10909125")
-        set("kotlinVersion", "1.9.22")
+        set("compileSdkVersion", 36)
+        set("targetSdkVersion", 36)
+        set("ndkVersion", "27.1.12297006")
+        set("kotlinVersion", "2.0.0")
     }
     repositories {
         maven { url = uri("https://maven.aliyun.com/repository/google/") }

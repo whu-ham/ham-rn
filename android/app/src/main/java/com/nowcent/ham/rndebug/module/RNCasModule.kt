@@ -6,6 +6,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.module.annotations.ReactModule
+import com.nowcent.ham.rn.nativemodule.NativeCasModuleSpec
 
 /**
  * @author orangeboyChen
@@ -14,14 +15,11 @@ import com.facebook.react.module.annotations.ReactModule
  */
 var casCookie: String = ""
 
-@ReactModule(name = "CasModule")
 class RNCasModule(reactContext: ReactApplicationContext) :
-    ReactContextBaseJavaModule(reactContext) {
-    override fun getName() = "CasModule"
+    NativeCasModuleSpec(reactContext) {
 
-    @ReactMethod
-    fun requestCasCookie(promise: Promise) {
+    override fun requestCasCookie(): String {
         Log.i("RNCasModule", "requestCasCookie: cookie=$casCookie")
-        promise.resolve(casCookie)
+        return casCookie
     }
 }

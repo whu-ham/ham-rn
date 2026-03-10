@@ -1,6 +1,8 @@
 package com.nowcent.ham.rndebug.component.cas
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.nowcent.ham.rndebug.RNContainer
 
 /**
@@ -10,5 +12,5 @@ import com.nowcent.ham.rndebug.RNContainer
  */
 @Composable
 fun RNCasMobileLoginView() {
-    RNContainer("RNCasMobileLogin")
+    RNContainer("RNCasMobileLogin", modifier = Modifier.fillMaxSize())
 }
