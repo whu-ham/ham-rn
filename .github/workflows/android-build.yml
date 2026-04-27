@@ -37,4 +37,6 @@ jobs:
             ${{ runner.os }}-gradle-
       - name: Build Android Debug
         working-directory: android
+        env:
+          GRADLE_OPTS: -Xmx4096m
         run: ./gradlew assembleDebug --no-daemon
