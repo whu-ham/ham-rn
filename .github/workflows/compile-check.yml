@@ -1,0 +1,27 @@
+name: Bundle Check
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: true
+      - name: Bundle iOS
+        run: npx react-native bundle --platform ios --dev false --entry-file index.js --bundle-output /tmp/ios.jsbundle
+      - name: Bundle Android
+        run: npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output /tmp/android.jsbundle

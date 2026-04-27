@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "ios": "react-native run-ios --simulator=\"iPhone 17 Pro\"",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest"
@@ -71,6 +71,16 @@
     "jsSrcsDir": "src/modules",
     "android": {
       "javaPackageName": "com.nowcent.ham.rn.nativemodule"
+    },
+    "ios": {
+      "modulesProvider": {
+        "NativeCasMobileLoginModule": "RNNativeCasMobileLoginModule",
+        "NativeCasModule": "RNNativeCasModule",
+        "NativeCommonModule": "RNNativeCommonModule",
+        "NativeEducationModule": "RNNativeEducationModule",
+        "NativeLog": "RNNativeLog",
+        "NativeScoreCalcModule": "RNNativeScoreCalcModule"
+      }
     }
   }
 }

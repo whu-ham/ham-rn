@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "ham_rn.app"
-               BlueprintName = "ham_rn"
-               ReferencedContainer = "container:ham_rn.xcodeproj">
+               BuildableName = "ham-rn.app"
+               BlueprintName = "ham-rn"
+               ReferencedContainer = "container:ham-rn.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "ham_rnTests.xctest"
-               BlueprintName = "ham_rnTests"
-               ReferencedContainer = "container:ham_rn.xcodeproj">
+               BuildableName = "ham-rnTests.xctest"
+               BlueprintName = "ham-rnTests"
+               ReferencedContainer = "container:ham-rn.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "ham_rn.app"
-            BlueprintName = "ham_rn"
-            ReferencedContainer = "container:ham_rn.xcodeproj">
+            BuildableName = "ham-rn.app"
+            BlueprintName = "ham-rn"
+            ReferencedContainer = "container:ham-rn.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "ham_rn.app"
-            BlueprintName = "ham_rn"
-            ReferencedContainer = "container:ham_rn.xcodeproj">
+            BuildableName = "ham-rn.app"
+            BlueprintName = "ham-rn"
+            ReferencedContainer = "container:ham-rn.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

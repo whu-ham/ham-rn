@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: true
+
+      - name: Bundle Android
+        run: |
+          mkdir -p build/android
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output build/android/index.android.bundle \
+            --assets-dest build/android
+
+      - name: Bundle iOS
+        run: |
+          mkdir -p build/ios
+          npx react-native bundle \
+            --platform ios \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output build/ios/main.jsbundle \
+            --assets-dest build/ios
+
+      - name: Zip bundles
+        run: |
+          cd build/android && zip -r ../../android-bundle.zip . && cd ../..
+          cd build/ios && zip -r ../../ios-bundle.zip . && cd ../..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            android-bundle.zip
+            ios-bundle.zip
