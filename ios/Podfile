@@ -1,4 +1,5 @@
 # Resolve react_native_pods.rb with node to allow for hoisting
+ENV['RCT_NEW_ARCH_ENABLED'] = "1"
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
     "react-native/scripts/react_native_pods.rb",
@@ -14,7 +15,7 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-target 'ham_rn' do
+target 'ham-rn' do
   config = use_native_modules!
 
   use_react_native!(
@@ -23,7 +24,7 @@ target 'ham_rn' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  target 'ham_rnTests' do
+  target 'ham-rnTests' do
     inherit! :complete
     # Pods for testing
   end

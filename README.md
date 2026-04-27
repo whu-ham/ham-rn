@@ -1,41 +1,95 @@
 # Ham React Native
 
-Ham端上ReactNative组件大仓
+A React Native component monorepo for the Ham app, providing education-related features with over-the-air (OTA) hot update support.
 
-APP用到的RN组件：
+## Features
 
-- 课程获取
-- 成绩获取
-- 成绩计算
-- 热更新
+- **Course Schedule** – Fetch and parse course schedules from the education system
+- **Score Query** – Retrieve academic scores with structured parsing
+- **Score Calculator** – GPA/weighted score calculation utilities
+- **CAS Authentication** – Central Authentication Service login flow (including mobile login)
+- **Hot Update** – OTA updates powered by [hot-updater](https://github.com/gronxb/hot-updater)
+- **i18n** – Multi-language support (English, Chinese, Japanese)
 
-# 为什么要用React Native
+## Tech Stack
 
-支持热更新
+- React Native 0.83 (New Architecture enabled)
+- TypeScript
+- Jotai (state management)
+- i18next (internationalization)
+- ESLint + Prettier (code quality)
+- pnpm (package manager)
 
-# 开发
+## Getting Started
 
-## 准备
+### Prerequisites
 
-将本项目克隆至本地，然后运行
+- Node.js >= 18
+- pnpm
+- Xcode (for iOS)
+- Android Studio (for Android)
+- CocoaPods
 
-```shell
-yarn install
+### Installation
+
+```bash
+pnpm install
 ```
 
-## 运行
+### iOS Setup
 
-在根目录上运行
-
-```shell
-yarn start
+```bash
+cd ios && pod install && cd ..
 ```
 
-开启metro服务器。APP在调试模式时，将自动连接局域网上的metro服务器。
+### Running
 
-## 部署
+```bash
+# Start Metro bundler
+pnpm start
 
-参见`./shell`目录下的脚本
+# Run on iOS
+pnpm ios
+
+# Run on Android
+pnpm android
+```
+
+### Linting
+
+```bash
+pnpm lint
+```
+
+## Project Structure
+
+```
+src/
+├── business/          # Business logic layer
+│   ├── cas/           # CAS authentication
+│   └── education/     # Education system (course, score, scorecalc)
+├── components/        # React Native UI components
+│   ├── cas/           # CAS login views
+│   ├── education/     # Education-related views
+│   └── scorecalc/     # Score calculator views
+├── i18n/              # Internationalization resources
+├── modules/           # Native module specs (Turbo Modules)
+├── resources/         # Static assets (images, HTML)
+└── utils/             # Shared utilities (color, request, UI)
+```
+
+## Deployment
+
+See the `shell/` directory for deployment scripts. Hot updates are managed via `hot-updater`.
+
+## CI/CD
+
+GitHub Actions workflows run on PRs to `main` and pushes to `main`:
+
+- **Lint** – ESLint check
+- **Compile Check** – TypeScript type checking
+- **Android Build** – Debug APK build verification
+- **iOS Build** – Debug build verification
 
 ## License
 

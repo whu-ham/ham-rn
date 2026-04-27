@@ -78,3 +78,21 @@ yarn.lock
 # hot-updater
 .hot-updater/output
 dist
+
+# pnpm
+pnpm-debug.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+
+# Build outputs
+*.tgz
