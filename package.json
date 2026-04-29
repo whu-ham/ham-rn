@@ -10,7 +10,8 @@
     "start": "pnpm embed && react-native start",
     "test": "pnpm embed && jest",
     "bundle:android": "pnpm embed && mkdir -p build/android && react-native bundle --platform android --dev false --entry-file index.js --bundle-output build/android/index.android.bundle --assets-dest build/android",
-    "bundle:ios": "pnpm embed && mkdir -p build/ios && react-native bundle --platform ios --dev false --entry-file index.js --bundle-output build/ios/main.jsbundle --assets-dest build/ios"
+    "bundle:ios": "pnpm embed && mkdir -p build/ios && react-native bundle --platform ios --dev false --entry-file index.js --bundle-output build/ios/main.jsbundle --assets-dest build/ios",
+    "deploy": "pnpm hot-updater deploy -i"
   },
   "dependencies": {
     "@hot-updater/react-native": "0.25.7",
