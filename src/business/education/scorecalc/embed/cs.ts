@@ -1,20 +1,30 @@
 import {defineEmbed} from '@/business/education/scorecalc/defineEmbed';
+import {getCourseTypeInfo} from '@/business/education/scorecalc/courseTypeInfo';
 
 /**
  * F2 (综测) score calculation.
  *
  * Logic ported from the native Swift `calcF2` method:
- * 1. Split courses into primary (必修) and secondary (non-必修).
+ * 1. Split courses into primary (必修) and secondary (non-必修) using ScoreTypeInfo logic.
+ *    Primary = (公+必) || (通+必) || (non-跨 + 专+必).
  * 2. If secondary courses exceed 8, keep only the top 8 by weighted score (credit × score).
  * 3. F2 = primaryWeightedTotal / primaryCreditTotal + secondaryWeightedTotal × 0.002
  *    (falls back to secondaryWeightedTotal × 0.002 when no primary credits exist).
  * 4. Return the calculated score and the list of selected courseIds.
  */
-defineEmbed(scoreList => {
-  const isPrimary = (courseType: string) => courseType.includes('必修');
+defineEmbed((scoreList, userInfo) => {
+  const userCollege = userInfo.userCollege ?? '';
 
-  const primaryList = scoreList.filter(s => isPrimary(s.courseType));
-  let secondaryList = scoreList.filter(s => !isPrimary(s.courseType));
+  const primaryList = scoreList.filter(
+    s =>
+      getCourseTypeInfo(s.courseType, s.courseCollege, userCollege)
+        .primaryCourse,
+  );
+  let secondaryList = scoreList.filter(
+    s =>
+      !getCourseTypeInfo(s.courseType, s.courseCollege, userCollege)
+        .primaryCourse,
+  );
 
   // Keep at most 8 secondary courses, sorted by weighted score descending
   if (secondaryList.length > 8) {
