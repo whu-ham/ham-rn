@@ -47,9 +47,8 @@
       "verify_failed_detail": "请检查代码中是否存在语法错误",
       "verify_success": "验证通过"
     },
-    "github": {
-      "subtitle": "去Github提PR",
-      "title": "开发成绩计算方式"
+    "docs": {
+      "title": "了解如何添加成绩计算脚本"
     },
     "item": {
       "current": "当前",

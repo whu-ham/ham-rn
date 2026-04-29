@@ -47,9 +47,8 @@
       "verify_failed_detail": "コードに構文エラーがないか確認してください",
       "verify_success": "検証に成功しました"
     },
-    "github": {
-      "subtitle": "GitHubでPRを作成",
-      "title": "成績計算方式を開発"
+    "docs": {
+      "title": "成績計算スクリプトの追加方法を見る"
     },
     "item": {
       "current": "現在",

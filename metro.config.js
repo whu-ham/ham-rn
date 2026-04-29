@@ -12,6 +12,10 @@ const config = {
     extraNodeModules: {
       '@': path.resolve(__dirname, 'src'),
     },
+    blockList: [
+      /scripts\/.*/,
+      /src\/business\/education\/scorecalc\/embed\/(?!generated\/).*/,
+    ],
   },
 };
 

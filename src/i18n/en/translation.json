@@ -47,9 +47,8 @@
       "verify_failed_detail": "Check your code for syntax errors",
       "verify_success": "Verification passed"
     },
-    "github": {
-      "subtitle": "Open a PR on GitHub",
-      "title": "Develop score calculators"
+    "docs": {
+      "title": "Learn how to add score calculation scripts"
     },
     "item": {
       "current": "Current",

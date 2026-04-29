@@ -3,15 +3,11 @@ import {View, StyleSheet, Animated, Platform} from 'react-native';
 import ScrollView = Animated.ScrollView;
 import {useColor} from '@/utils/color/color';
 import ScoreCalcViewCurrentCard from './component/ScoreCalcViewCurrentCard';
-import ScoreCalcViewGoToGithubCard from './component/ScoreCalcViewGoToGithubCard';
 import ScoreCalcViewOtherCard from './component/other/ScoreCalcViewOtherCard';
+import ScoreCalcViewDocsCard from './component/ScoreCalcViewDocsCard';
 import type {ScoreCalcItem} from '@/business/education/scorecalc/type.ts';
 import ScoreCalcModule from '@/modules/NativeScoreCalcModule';
-import ScoreCalcViewDevCard from './component/ScoreCalcViewDevCard';
-import {
-  fetchScoreCalcFromGithub,
-  fetchScoreCalcFromLocal,
-} from '@/business/education/scorecalc/fetch';
+import {fetchScoreCalcFromLocal} from '@/business/education/scorecalc/fetch';
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -54,7 +50,6 @@ const ScoreCalcViewContent = ({paddingTop}: {paddingTop: number}) => {
   const [currentItem, setCurrentItem] = useState<ScoreCalcItem>();
   const color = useColor();
 
-  const [showDevMode, setShowDevMode] = useState(false);
   const [calcList, setCalcList] = useState<Array<ScoreCalcItem>>([]);
 
   useEffect(() => {
@@ -83,14 +78,9 @@ const ScoreCalcViewContent = ({paddingTop}: {paddingTop: number}) => {
     }
   };
 
-  const updateScoreCalcFromLocal = async () => {
+  const updateScoreCalcFromLocal = () => {
     const localItem = fetchScoreCalcFromLocal();
     setCalcList(localItem);
-
-    try {
-      const githubItem = await fetchScoreCalcFromGithub();
-      setCalcList([...localItem, ...githubItem]);
-    } catch {}
   };
   return (
     <ScrollView
@@ -109,16 +99,7 @@ const ScoreCalcViewContent = ({paddingTop}: {paddingTop: number}) => {
         onSetItem={() => updateCurrentItem()}
       />
       <View style={styles.itemPadding} />
-      <ScoreCalcViewGoToGithubCard
-        color={color}
-        showDevMode={() => setShowDevMode(true)}
-      />
-      {showDevMode && (
-        <>
-          <View style={styles.itemPadding} />
-          <ScoreCalcViewDevCard color={color} />
-        </>
-      )}
+      <ScoreCalcViewDocsCard color={color} />
       <View style={styles.itemPadding} />
       <ScoreCalcViewOtherCard
         color={color}
