@@ -14,7 +14,6 @@ import type {ScoreCalcItem} from '@/business/education/scorecalc/type.ts';
 import Color from 'color';
 import ScoreCalcModule from '@/modules/NativeScoreCalcModule';
 import CommonModule from '@/modules/NativeCommonModule';
-import {getJsScriptFromGithub} from '@/business/education/scorecalc/fetch';
 import {useTranslation} from 'react-i18next';
 
 interface ScoreCalcViewCurrentCardParams {
@@ -51,14 +50,6 @@ const ScoreCalcViewCurrentCard = ({
   const doUpdate = async () => {
     if (!listItem) {
       return;
-    }
-    if (listItem.script === '' && listItem.url) {
-      try {
-        listItem.script = await getJsScriptFromGithub(listItem.url);
-      } catch {
-        CommonModule.showToast('error', t('common.network_error'), '');
-        return;
-      }
     }
     const res = ScoreCalcModule.selectCalc(listItem);
     if (!res) {

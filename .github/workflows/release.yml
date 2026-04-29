@@ -23,6 +23,9 @@ jobs:
           version: 10
           run_install: true
 
+      - name: Embed scripts
+        run: pnpm embed
+
       - name: Bundle Android
         run: |
           mkdir -p build/android

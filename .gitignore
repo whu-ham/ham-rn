@@ -96,3 +96,6 @@ Thumbs.db
 
 # Build outputs
 *.tgz
+
+# Auto-generated embed bundles
+src/business/education/scorecalc/embed/generated/

@@ -3,11 +3,15 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
-    "ios": "react-native run-ios --simulator=\"iPhone 17 Pro\"",
+    "embed": "tsx scripts/embed.ts",
+    "android": "pnpm embed && react-native run-android",
+    "ios": "pnpm embed && react-native run-ios --simulator=\"iPhone 17 Pro\"",
     "lint": "eslint .",
-    "start": "react-native start",
-    "test": "jest"
+    "start": "pnpm embed && react-native start",
+    "test": "pnpm embed && jest",
+    "bundle:android": "pnpm embed && mkdir -p build/android && react-native bundle --platform android --dev false --entry-file index.js --bundle-output build/android/index.android.bundle --assets-dest build/android",
+    "bundle:ios": "pnpm embed && mkdir -p build/ios && react-native bundle --platform ios --dev false --entry-file index.js --bundle-output build/ios/main.jsbundle --assets-dest build/ios",
+    "deploy": "pnpm hot-updater deploy -i"
   },
   "dependencies": {
     "@hot-updater/react-native": "0.25.7",
@@ -48,6 +52,7 @@
     "@types/react-test-renderer": "^18.3.1",
     "babel-jest": "^29.7.0",
     "dotenv": "^17.2.3",
+    "esbuild": "^0.28.0",
     "eslint": "9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -58,6 +63,7 @@
     "jiti": "^2.6.1",
     "prettier": "3.5.3",
     "react-test-renderer": "^19.2.4",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0",
     "wrangler": "^4.59.3"

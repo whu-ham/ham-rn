@@ -4,33 +4,23 @@
  * @date 2024/8/3 17:33
  */
 import type {ScoreCalcItem} from './type.ts';
-
-const fetchScoreCalcFromGithub = async (): Promise<Array<ScoreCalcItem>> => {
-  const res = await fetch(
-    'https://raw.githubusercontent.com/whu-ham/ScoreCalculator/main/config.json',
-  );
-  const json = await res.json();
-  return Object.keys(json).map(key => {
-    return {
-      url: `https://raw.githubusercontent.com/whu-ham/ScoreCalculator/main/${key}`,
-      type: 'GITHUB',
-      script: '',
-      ...json[key],
-    } as ScoreCalcItem;
-  });
-};
-
-const getJsScriptFromGithub = async (url: string): Promise<string> => {
-  const res = await fetch(url);
-  return await res.text();
-};
+import csScript from './embed/generated/cs.generated';
 
 const fetchScoreCalcFromLocal = (): Array<ScoreCalcItem> => {
-  return [];
+  return [
+    {
+      title: '综测计算（F2）',
+      date: '2026-04-29',
+      author: 'orangeboyChen',
+      version: 1,
+      brief: '综测F2分数计算',
+      updateBrief: '初始版本',
+      desc: '按必修/选修分类，选修最多取加权前8门，计算综测F2分数',
+      type: 'APP',
+      url: 'https://raw.githubusercontent.com/whu-ham/ham-rn/main/src/business/education/scorecalc/embed/cs.ts',
+      script: csScript,
+    },
+  ];
 };
 
-export {
-  fetchScoreCalcFromGithub,
-  fetchScoreCalcFromLocal,
-  getJsScriptFromGithub,
-};
+export {fetchScoreCalcFromLocal};

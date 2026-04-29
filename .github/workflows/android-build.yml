@@ -35,6 +35,8 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+      - name: Embed scripts
+        run: pnpm embed
       - name: Build Android Debug
         working-directory: android
         env:

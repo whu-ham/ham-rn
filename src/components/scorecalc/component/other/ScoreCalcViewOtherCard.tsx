@@ -14,8 +14,6 @@ import {StyleSheet} from 'react-native';
 import type {ScoreCalcItem} from '@/business/education/scorecalc/type.ts';
 import ScoreCalcModule from '@/modules/NativeScoreCalcModule';
 import CommonModule from '@/modules/NativeCommonModule';
-import {getJsScriptFromGithub} from '@/business/education/scorecalc/fetch';
-import Log from '@/modules/NativeLog';
 import {useTranslation} from 'react-i18next';
 
 interface ScoreCalcViewOtherCardParams {
@@ -51,37 +49,9 @@ const ScoreCalcViewOtherCard = ({
               color={color}
               currentItem={currentItem}
               goToDetail={async () => {
-                if (item.script === '' && item.url) {
-                  try {
-                    item.script = await getJsScriptFromGithub(item.url);
-                  } catch {
-                    CommonModule.showToast(
-                      'error',
-                      t('common.network_error'),
-                      '',
-                    );
-                    return;
-                  }
-                }
                 ScoreCalcModule.openDetail(item);
               }}
               onSelect={async () => {
-                if (item.script === '' && item.url) {
-                  try {
-                    item.script = await getJsScriptFromGithub(item.url);
-                    Log.i(
-                      'ScoreCalcViewOtherCard',
-                      `onSelect - script=${item.script}`,
-                    );
-                  } catch {
-                    CommonModule.showToast(
-                      'error',
-                      t('common.network_error'),
-                      '',
-                    );
-                    return;
-                  }
-                }
                 const res = ScoreCalcModule.selectCalc(item);
                 if (!res) {
                   CommonModule.showToast(
