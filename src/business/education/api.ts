@@ -22,8 +22,9 @@ const loginEducation = async () => {
   const res = await Cas.Api.fastLogin({
     service: 'https%3A%2F%2Fjwgl.whu.edu.cn%2Fsso%2Fjznewsixlogin',
   });
+  const url = res.url;
   const text = await res.text();
-  Log.i('loginEducation', `response=${text}`);
+  Log.i('loginEducation', `response=${text} url=${url}`);
 
   if (res.url.indexOf('ReAuth') !== -1) {
     throw new CasReAuthLoginError(res.url);
