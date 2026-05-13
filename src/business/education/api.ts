@@ -29,16 +29,15 @@ const loginEducation = async () => {
     throw new CasReAuthLoginError(res.url);
   } else if (text.indexOf('教学管理信息服务平台') === -1) {
     Log.e('EducationApi', `login education error! res.url=${res.url}`);
-    const errReason = await parseJsError(res);
+    const errReason = parseJsError(text);
     const realReason = errReason.length
       ? errReason
-      : '试试前往“我的->登录信息门户”重新登录信息门户呢~';
+      : '试试前往"我的->登录信息门户"重新登录信息门户呢~';
     throw new CasLoginError(`教务系统登录失败！${realReason}`);
   }
 };
 
-const parseJsError = async (response: Response): Promise<string> => {
-  const html = await response.text();
+const parseJsError = (html: string): string => {
   const regex = /var dlktsxx=".*";/;
   const match = regex.exec(html);
   return match ? match[0].replace('var dlktsxx="', '').replace('";', '') : '';
