@@ -13,7 +13,7 @@ export class CasReAuthLoginError extends Error {
   url: string;
 
   constructor(url: string) {
-    super();
+    super('CAS re-authentication required');
     this.url = url;
   }
 }

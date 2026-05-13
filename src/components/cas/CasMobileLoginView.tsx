@@ -8,7 +8,7 @@ import '@/i18n/i18n';
 import {useTranslation} from 'react-i18next';
 import type {Cookies} from '@preeternal/react-native-cookie-manager';
 import CookieManager from '@preeternal/react-native-cookie-manager';
-import {webViewStyle} from '@/components/cas/style';
+import {useWebViewStyle} from '@/components/cas/style';
 
 /**
  * @author orangeboyChen
@@ -186,7 +186,7 @@ function CasMobileLoginView(): React.JSX.Element {
         t('cas.account_expired_tip'),
         t('cas.invalid_username_or_password_tip'),
       )}
-      style={webViewStyle()}
+      style={useWebViewStyle()}
       webviewDebuggingEnabled={false}
       onMessage={message => {
         const event: {

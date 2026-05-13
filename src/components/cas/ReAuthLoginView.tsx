@@ -1,6 +1,6 @@
 import {WebView} from 'react-native-webview';
 import React from 'react';
-import {webViewStyle} from '@/components/cas/style';
+import {useWebViewStyle} from '@/components/cas/style';
 
 /**
  * @author orangeboyChen
@@ -17,7 +17,7 @@ const ReAuthLoginView = ({
   return (
     <WebView
       source={{uri: reAuthUrl}}
-      style={webViewStyle()}
+      style={useWebViewStyle()}
       webviewDebuggingEnabled={false}
       onShouldStartLoadWithRequest={request => {
         if (request.url.indexOf('ticket') !== -1) {

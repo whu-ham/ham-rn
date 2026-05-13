@@ -6,7 +6,7 @@ import {useColor} from '@/utils/color/color';
  * @version 1.0
  * @date 2026/5/13 15:12
  */
-export const webViewStyle = (): ViewStyle => {
+export const useWebViewStyle = (): ViewStyle => {
   const color = useColor();
   return {
     backgroundColor: color.ham_bg_b1,

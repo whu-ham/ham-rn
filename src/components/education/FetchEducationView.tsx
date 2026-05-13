@@ -8,7 +8,7 @@ import '@/i18n/i18n';
 import type {StyleProp, TextStyle, ViewStyle} from 'react-native';
 import {ActivityIndicator, Text, View} from 'react-native';
 import Log from '@/modules/NativeLog';
-import {CasLoginError, CasReAuthLoginError} from '@/business/education/api';
+import {CasReAuthLoginError} from '@/business/education/api';
 import {useTranslation} from 'react-i18next';
 import {ReAuthLoginView} from '@/components/cas/ReAuthLoginView';
 
@@ -35,27 +35,22 @@ const FetchEducationView = ({
   const [reAuthUrl, setReAuthUrl] = useState('');
   const [stage, setStage] = useState(EducationStage.TRY_GET_INFO_DIRECTLY);
 
-  if (stage === EducationStage.TRY_GET_INFO_DIRECTLY) {
-    useEffect(() => {
-      doLoginAndFetch().catch(err => {
-        Log.e(tag, `doFetch - error! err=${JSON.stringify(err)}`);
-        if (err instanceof CasLoginError) {
-          onError(err.message);
-        } else if (err instanceof CasReAuthLoginError) {
-          setReAuthUrl(err.url);
-          setStage(EducationStage.REAUTH_LOGIN);
-        }
-      });
-    }, []);
-    return (
-      <View style={containerStyle}>
-        <View style={loadingContainerStyle}>
-          <ActivityIndicator size={'large'} />
-          <Text style={loadingTextStyle}>{t('education.loading')}</Text>
-        </View>
-      </View>
-    );
-  } else if (stage === EducationStage.REAUTH_LOGIN) {
+  useEffect(() => {
+    if (stage !== EducationStage.TRY_GET_INFO_DIRECTLY) {
+      return;
+    }
+    doLoginAndFetch().catch(err => {
+      Log.e(tag, `doFetch - error! err=${JSON.stringify(err)}`);
+      if (err instanceof CasReAuthLoginError) {
+        setReAuthUrl(err.url);
+        setStage(EducationStage.REAUTH_LOGIN);
+      } else {
+        onError(err.message);
+      }
+    });
+  }, [stage]);
+
+  if (stage === EducationStage.REAUTH_LOGIN) {
     return (
       <ReAuthLoginView
         reAuthUrl={reAuthUrl}
@@ -74,19 +69,16 @@ const FetchEducationView = ({
         }}
       />
     );
-  } else if (stage === EducationStage.LOAD_EDUCATION) {
-    useEffect(() => {}, []);
-    return (
-      <View style={containerStyle}>
-        <View style={loadingContainerStyle}>
-          <ActivityIndicator size={'large'} />
-          <Text style={loadingTextStyle}>{t('education.loading')}</Text>
-        </View>
-      </View>
-    );
-  } else {
-    return <></>;
   }
+
+  return (
+    <View style={containerStyle}>
+      <View style={loadingContainerStyle}>
+        <ActivityIndicator size={'large'} />
+        <Text style={loadingTextStyle}>{t('education.loading')}</Text>
+      </View>
+    </View>
+  );
 };
 
 const containerStyle: StyleProp<ViewStyle> = {
