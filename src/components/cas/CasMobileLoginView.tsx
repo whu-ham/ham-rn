@@ -1,15 +1,14 @@
 import React, {useEffect, useState} from 'react';
 import {WebView} from 'react-native-webview';
-import type {ViewStyle} from 'react-native';
 import {Linking} from 'react-native';
 import {Platform} from 'react-native';
 import CasMobileLoginModule from '@/modules/NativeCasMobileLoginModule';
 import Log from '@/modules/NativeLog';
-import {useColor} from '@/utils/color/color';
 import '@/i18n/i18n';
 import {useTranslation} from 'react-i18next';
 import type {Cookies} from '@preeternal/react-native-cookie-manager';
 import CookieManager from '@preeternal/react-native-cookie-manager';
+import {webViewStyle} from '@/components/cas/style';
 
 /**
  * @author orangeboyChen
@@ -252,12 +251,5 @@ function CasMobileLoginView(): React.JSX.Element {
     />
   );
 }
-
-const webViewStyle = (): ViewStyle => {
-  const color = useColor();
-  return {
-    backgroundColor: color.ham_bg_b1,
-  };
-};
 
 export default CasMobileLoginView;

@@ -3,44 +3,35 @@
  * @version 1.0
  * @date 2024/7/15 18:17
  */
-import React, {useEffect} from 'react';
+import React from 'react';
 import '@/i18n/i18n';
-import type {StyleProp, TextStyle, ViewStyle} from 'react-native';
-import {ActivityIndicator, Text, View} from 'react-native';
 import {getCourseList} from '@/business/education/course';
 import EducationModule, {
   type NativeCourseEntity,
   type NativeCourseGridEntity,
 } from '@/modules/NativeEducationModule';
 import {loginEducation} from '@/business/education';
-import Log from '@/modules/NativeLog';
 import {generateValidate} from '@/business/education/api';
-import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n/i18n';
+import FetchEducationView from '@/components/education/FetchEducationView';
 
 const FetchCourseView = (): React.ReactElement => {
-  const {t} = useTranslation();
-  useEffect(() => {
-    doGetCourseList().catch(err => {
-      Log.e(
-        'FetchCourseView',
-        `doGetCourseList - error! err=${JSON.stringify(err)}`,
-      );
-      EducationModule.onGetCourseList([], [], err.message);
-    });
-  }, []);
   return (
-    <View style={containerStyle}>
-      <View style={loadingContainerStyle}>
-        <ActivityIndicator size={'large'} />
-        <Text style={loadingTextStyle}>{t('education.loading')}</Text>
-      </View>
-    </View>
+    <FetchEducationView
+      tag="FetchCourseView"
+      doLoginAndFetch={doLoginAndGetCourseList}
+      doFetch={doGetCourseList}
+      onError={message => EducationModule.onGetCourseList([], [], message)}
+    />
   );
 };
 
-const doGetCourseList = async () => {
+const doLoginAndGetCourseList = async () => {
   await loginEducation();
+  await doGetCourseList();
+};
+
+const doGetCourseList = async () => {
   const {year, semester} = EducationModule.getCourseConfig();
   if (!year || !semester) {
     throw Error(i18n.t('education.semester_not_set'));
@@ -59,22 +50,6 @@ const doGetCourseList = async () => {
     nativeCourseGridList.push(courseGridList);
   }
   EducationModule.onGetCourseList(nativeCourseList, nativeCourseGridList, null);
-};
-
-const containerStyle: StyleProp<ViewStyle> = {
-  width: '100%',
-  height: '100%',
-};
-
-const loadingContainerStyle: StyleProp<ViewStyle> = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  height: '100%',
-};
-
-const loadingTextStyle: StyleProp<TextStyle> = {
-  fontSize: 12,
 };
 
 export default FetchCourseView;

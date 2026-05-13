@@ -3,38 +3,32 @@
  * @version 1.0
  * @date 2024/7/16 00:39
  */
-import React, {useEffect} from 'react';
+import React from 'react';
 import '@/i18n/i18n';
-import type {StyleProp, TextStyle, ViewStyle} from 'react-native';
-import {ActivityIndicator, Text, View} from 'react-native';
-import EducationModule from '@/modules/NativeEducationModule.ts';
+import EducationModule from '@/modules/NativeEducationModule';
 import {loginEducation} from '@/business/education';
 import {getScoreList} from '@/business/education/score';
-import Log from '@/modules/NativeLog.ts';
 import {generateValidate} from '@/business/education/api';
-import {useTranslation} from 'react-i18next';
 import {getUserInfo} from '@/business/education/score/api';
+import FetchEducationView from '@/components/education/FetchEducationView';
 
 const FetchScoreView = (): React.ReactElement => {
-  const {t} = useTranslation();
-  useEffect(() => {
-    doGetScoreList().catch(err => {
-      Log.i('FetchScoreView', `doGetScoreList - err=${JSON.stringify(err)}`);
-      EducationModule.onGetScoreList('', '', err.message);
-    });
-  }, []);
   return (
-    <View style={containerStyle}>
-      <View style={loadingContainerStyle}>
-        <ActivityIndicator size={'large'} />
-        <Text style={loadingTextStyle}>{t('education.loading')}</Text>
-      </View>
-    </View>
+    <FetchEducationView
+      tag="FetchScoreView"
+      doLoginAndFetch={doLoginAndGetScoreList}
+      doFetch={doGetScoreList}
+      onError={message => EducationModule.onGetScoreList('', '', message)}
+    />
   );
 };
 
-const doGetScoreList = async () => {
+const doLoginAndGetScoreList = async () => {
   await loginEducation();
+  await doGetScoreList();
+};
+
+const doGetScoreList = async () => {
   const [scoreList, userInfo] = await getScoreList({
     validate: generateValidate(),
   });
@@ -45,22 +39,6 @@ const doGetScoreList = async () => {
   const scoreListResult = JSON.stringify(scoreList);
   const userInfoResult = JSON.stringify(userInfo);
   EducationModule.onGetScoreList(scoreListResult, userInfoResult, null);
-};
-
-const containerStyle: StyleProp<ViewStyle> = {
-  width: '100%',
-  height: '100%',
-};
-
-const loadingContainerStyle: StyleProp<ViewStyle> = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  height: '100%',
-};
-
-const loadingTextStyle: StyleProp<TextStyle> = {
-  fontSize: 12,
 };
 
 export default FetchScoreView;

@@ -7,19 +7,33 @@ import Log from '@/modules/NativeLog';
  * @date 2024/7/15 18:10
  */
 
+export class CasLoginError extends Error {}
+
+export class CasReAuthLoginError extends Error {
+  url: string;
+
+  constructor(url: string) {
+    super();
+    this.url = url;
+  }
+}
+
 const loginEducation = async () => {
   const res = await Cas.Api.fastLogin({
     service: 'https%3A%2F%2Fjwgl.whu.edu.cn%2Fsso%2Fjznewsixlogin',
   });
   const text = await res.text();
   Log.i('loginEducation', `response=${text}`);
-  if (text.indexOf('教学管理信息服务平台') === -1) {
+
+  if (res.url.indexOf('ReAuth') !== -1) {
+    throw new CasReAuthLoginError(res.url);
+  } else if (text.indexOf('教学管理信息服务平台') === -1) {
     Log.e('EducationApi', `login education error! res.url=${res.url}`);
     const errReason = await parseJsError(res);
     const realReason = errReason.length
       ? errReason
       : '试试前往“我的->登录信息门户”重新登录信息门户呢~';
-    throw Error(`教务系统登录失败！${realReason}`);
+    throw new CasLoginError(`教务系统登录失败！${realReason}`);
   }
 };
 
