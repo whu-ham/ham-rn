@@ -40,9 +40,13 @@ const buildInjectedScript = (
    if (socialAutoLoginElement) {
        socialAutoLoginElement.remove();
    }
-   const usernameElement = document.getElementById('mobileUsername');
-   const passwordElement = document.getElementById('mobilePassword');
-   const loginElement = document.getElementById('load');
+   const combineOptionsFooter = document.getElementsByClassName('combine_options_footer')[0];
+   if (combineOptionsFooter) {
+       combineOptionsFooter.remove();
+   }
+   const usernameElement = document.getElementById('username');
+   const passwordElement = document.getElementById('password');
+   const loginElement = document.getElementById('login_submit');
    if (!usernameElement || !passwordElement || !loginElement) {
        true;
    } else {
@@ -89,6 +93,10 @@ const buildInjectedScript = (
    const forgetPasswordElement = document.getElementById('mobileGetPasswordControllerId');
    if (forgetPasswordElement) {
        forgetPasswordElement.style.display = 'none';
+   }
+   const retrievePassElement = document.getElementById('retrievePassId');
+   if (retrievePassElement) {
+       retrievePassElement.remove();
    }
    const agreeLabel = document.querySelector('label[for="isAgree"]');
    if (agreeLabel) {
