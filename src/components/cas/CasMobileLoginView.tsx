@@ -1,15 +1,13 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {WebView} from 'react-native-webview';
-import type {ViewStyle} from 'react-native';
-import {Linking} from 'react-native';
-import {Platform} from 'react-native';
+import {Linking, Platform} from 'react-native';
 import CasMobileLoginModule from '@/modules/NativeCasMobileLoginModule';
 import Log from '@/modules/NativeLog';
-import {useColor} from '@/utils/color/color';
 import '@/i18n/i18n';
 import {useTranslation} from 'react-i18next';
 import type {Cookies} from '@preeternal/react-native-cookie-manager';
 import CookieManager from '@preeternal/react-native-cookie-manager';
+import {useWebViewStyle} from '@/components/cas/style';
 
 /**
  * @author orangeboyChen
@@ -38,9 +36,20 @@ const buildInjectedScript = (
       }
       window.ReactNativeWebView.postMessage(JSON.stringify(event));
    };
-   document.getElementsByClassName('social-aut-login')[0].remove();
-   const usernameElement = document.getElementById('mobileUsername');
-   const passwordElement = document.getElementById('mobilePassword');
+   const socialAutoLoginElement = document.getElementsByClassName('social-aut-login')[0];
+   if (socialAutoLoginElement) {
+       socialAutoLoginElement.remove();
+   }
+   const combineOptionsFooter = document.getElementsByClassName('combine_options_footer')[0];
+   if (combineOptionsFooter) {
+       combineOptionsFooter.remove();
+   }
+   const usernameElement = document.getElementById('username');
+   const passwordElement = document.getElementById('password');
+   const loginElement = document.getElementById('login_submit');
+   if (!usernameElement || !passwordElement || !loginElement) {
+       true;
+   } else {
    usernameElement.addEventListener('change', () => {
         sendMessage(true, 'usernameChange', usernameElement.value, passwordElement.value);
    });
@@ -48,7 +57,6 @@ const buildInjectedScript = (
    passwordElement.addEventListener('change', () => {
         sendMessage(true, 'passwordChange', usernameElement.value, passwordElement.value);
    });
-   const loginElement = document.getElementById('load');
    usernameElement.setAttribute('placeholder', ${JSON.stringify(
      studentIdPlaceholder,
    )});
@@ -57,7 +65,7 @@ const buildInjectedScript = (
    )});
    loginElement.onclick = (e) => {
        if (usernameElement.value.length !== 13 && usernameElement.value.length !== 8) {
-           showTips(${JSON.stringify(invalidStudentIdMessage)});
+           utils.alertBox(${JSON.stringify(invalidStudentIdMessage)});
            return false;  
        }
        sendMessage(true, 'login', usernameElement.value, passwordElement.value);
@@ -85,6 +93,10 @@ const buildInjectedScript = (
    const forgetPasswordElement = document.getElementById('mobileGetPasswordControllerId');
    if (forgetPasswordElement) {
        forgetPasswordElement.style.display = 'none';
+   }
+   const retrievePassElement = document.getElementById('retrievePassId');
+   if (retrievePassElement) {
+       retrievePassElement.remove();
    }
    const agreeLabel = document.querySelector('label[for="isAgree"]');
    if (agreeLabel) {
@@ -150,6 +162,7 @@ const buildInjectedScript = (
        }, 200);
        setTimeout(() => clearInterval(interval), 2000);
    }
+   }
 true;
 `;
 
@@ -159,9 +172,41 @@ interface UserInfo {
 }
 
 const TAG = 'CasMobileLoginView';
+const CAS_AUTH_SERVER = 'https://cas.whu.edu.cn/authserver';
+const CAS_MOBILE_LOGIN_URL = `${CAS_AUTH_SERVER}/mobile/auth?appId=985180443`;
+const CAS_MOBILE_SUCCESS_PATH = '/mobile/default.html';
+const PRIVACY_POLICY_URL =
+  'https://homewh.chaoxing.com/agree/privacyPolicy?appId=1000028';
+
+const decodeUrl = (url: string) => {
+  try {
+    return decodeURIComponent(url);
+  } catch {
+    return url;
+  }
+};
+
+const extractMobileToken = (url: string) => {
+  const decodedUrl = decodeUrl(url);
+  if (!decodedUrl.includes(CAS_MOBILE_SUCCESS_PATH)) {
+    return undefined;
+  }
+
+  const tokenParts = decodedUrl.split('mobile_token=', 2);
+  return tokenParts.length > 1 && tokenParts[1].length > 0
+    ? tokenParts[1]
+    : undefined;
+};
+
+const buildCookieHeader = (cookies: Cookies) =>
+  Object.keys(cookies)
+    .map(key => `${key}=${cookies[key].value}`)
+    .join(';');
 
 function CasMobileLoginView(): React.JSX.Element {
   const {t} = useTranslation();
+  const isLoginRef = useRef(false);
+
   useEffect(() => {
     CookieManager.clearAll(true).then(result => {
       Log.i(TAG, `clearCookie - ${result}`);
@@ -172,7 +217,7 @@ function CasMobileLoginView(): React.JSX.Element {
   return (
     <WebView
       source={{
-        uri: 'https://cas.whu.edu.cn/authserver/login?service=https%3A%2F%2Fcas.whu.edu.cn%2Fauthserver%2Fmobile%2Fcallback%3FappId%3D985180443&login_type=mobileLogin',
+        uri: CAS_MOBILE_LOGIN_URL,
       }}
       injectedJavaScript={buildInjectedScript(
         t('cas.student_id_placeholder'),
@@ -187,7 +232,7 @@ function CasMobileLoginView(): React.JSX.Element {
         t('cas.account_expired_tip'),
         t('cas.invalid_username_or_password_tip'),
       )}
-      style={webViewStyle()}
+      style={useWebViewStyle()}
       webviewDebuggingEnabled={false}
       onMessage={message => {
         const event: {
@@ -203,47 +248,40 @@ function CasMobileLoginView(): React.JSX.Element {
         }
       }}
       onShouldStartLoadWithRequest={request => {
-        const cookieHandler = (cookies: Cookies) => {
-          if (
-            (cookies.CASTGC?.value?.length ?? 0) > 0 &&
-            (cookies.JSESSIONID?.value?.length ?? 0) > 0
-          ) {
-            const result = Object.keys(cookies)
-              .map(key => `${key}=${cookies[key].value}`)
-              .join(';');
+        const mobileToken = extractMobileToken(request.url);
+        if (mobileToken && !isLoginRef.current) {
+          isLoginRef.current = true;
+
+          const cookieHandler = (cookies: Cookies) => {
+            const cookie = buildCookieHeader(cookies);
             CasMobileLoginModule.onRequestSuccess(
               userInfo.studentId ?? '',
               userInfo.password ?? '',
-              result,
+              cookie,
             );
-            Log.i(
-              'CasMobileLoginView',
-              `login cas - ${JSON.stringify(result)}`,
-            );
-          }
-        };
-        if (Platform.OS === 'ios') {
-          CookieManager.getAll(true).then(allCookie => {
-            const cookie: Cookies = {};
-            Object.keys(allCookie)
-              .filter(key => allCookie[key].domain === 'cas.whu.edu.cn')
-              .forEach(key => {
-                cookie[key] = allCookie[key];
-              });
-            cookieHandler(cookie);
-          });
-        } else if (Platform.OS === 'android') {
-          CookieManager.get('https://cas.whu.edu.cn/authserver/').then(
-            cookies => {
+            Log.i(TAG, `login cas mobile_token - ${mobileToken}`);
+            Log.i(TAG, `login cas cookie - ${JSON.stringify(cookie)}`);
+          };
+
+          if (Platform.OS === 'ios') {
+            CookieManager.getAll(true).then(allCookie => {
+              const cookie: Cookies = {};
+              Object.keys(allCookie)
+                .filter(key => allCookie[key].domain === 'cas.whu.edu.cn')
+                .forEach(key => {
+                  cookie[key] = allCookie[key];
+                });
+              cookieHandler(cookie);
+            });
+          } else if (Platform.OS === 'android') {
+            CookieManager.get(CAS_AUTH_SERVER).then(cookies => {
               cookieHandler(cookies);
-            },
-          );
+            });
+          }
+          return false;
         }
 
-        if (
-          request.url ===
-          'https://homewh.chaoxing.com/agree/privacyPolicy?appId=1000028'
-        ) {
+        if (request.url === PRIVACY_POLICY_URL) {
           Linking.openURL(request.url).then(() => {});
           return false;
         }
@@ -252,12 +290,5 @@ function CasMobileLoginView(): React.JSX.Element {
     />
   );
 }
-
-const webViewStyle = (): ViewStyle => {
-  const color = useColor();
-  return {
-    backgroundColor: color.ham_bg_b1,
-  };
-};
 
 export default CasMobileLoginView;
