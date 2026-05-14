@@ -65,7 +65,7 @@ const buildInjectedScript = (
    )});
    loginElement.onclick = (e) => {
        if (usernameElement.value.length !== 13 && usernameElement.value.length !== 8) {
-           showTips(${JSON.stringify(invalidStudentIdMessage)});
+           utils.alertBox(${JSON.stringify(invalidStudentIdMessage)});
            return false;  
        }
        sendMessage(true, 'login', usernameElement.value, passwordElement.value);
