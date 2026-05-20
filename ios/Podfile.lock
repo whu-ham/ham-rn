@@ -1,5 +1,4 @@
 PODS:
-  - BitByteData (2.0.4)
   - boost (1.84.0)
   - CookieManager (6.3.0):
     - boost
@@ -37,7 +36,7 @@ PODS:
   - hermes-engine (0.14.0):
     - hermes-engine/Pre-built (= 0.14.0)
   - hermes-engine/Pre-built (0.14.0)
-  - HotUpdater (0.25.0):
+  - HotUpdater (0.31.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -64,7 +63,6 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - SocketRocket
-    - SWCompression (~> 4.8.0)
     - Yoga
   - RCT-Folly (2024.11.18.00):
     - boost
@@ -2623,47 +2621,6 @@ PODS:
     - React-utils (= 0.83.1)
     - SocketRocket
   - SocketRocket (0.7.1)
-  - SWCompression (4.8.6):
-    - BitByteData (~> 2.0)
-    - SWCompression/BZip2 (= 4.8.6)
-    - SWCompression/Deflate (= 4.8.6)
-    - SWCompression/GZip (= 4.8.6)
-    - SWCompression/LZ4 (= 4.8.6)
-    - SWCompression/LZMA (= 4.8.6)
-    - SWCompression/LZMA2 (= 4.8.6)
-    - SWCompression/SevenZip (= 4.8.6)
-    - SWCompression/TAR (= 4.8.6)
-    - SWCompression/XZ (= 4.8.6)
-    - SWCompression/ZIP (= 4.8.6)
-    - SWCompression/Zlib (= 4.8.6)
-  - SWCompression/BZip2 (4.8.6):
-    - BitByteData (~> 2.0)
-  - SWCompression/Deflate (4.8.6):
-    - BitByteData (~> 2.0)
-  - SWCompression/GZip (4.8.6):
-    - BitByteData (~> 2.0)
-    - SWCompression/Deflate
-  - SWCompression/LZ4 (4.8.6):
-    - BitByteData (~> 2.0)
-  - SWCompression/LZMA (4.8.6):
-    - BitByteData (~> 2.0)
-  - SWCompression/LZMA2 (4.8.6):
-    - BitByteData (~> 2.0)
-    - SWCompression/LZMA
-  - SWCompression/SevenZip (4.8.6):
-    - BitByteData (~> 2.0)
-    - SWCompression/LZMA2
-  - SWCompression/TAR (4.8.6):
-    - BitByteData (~> 2.0)
-  - SWCompression/XZ (4.8.6):
-    - BitByteData (~> 2.0)
-    - SWCompression/LZMA2
-  - SWCompression/ZIP (4.8.6):
-    - BitByteData (~> 2.0)
-    - SWCompression/Deflate
-  - SWCompression/Zlib (4.8.6):
-    - BitByteData (~> 2.0)
-    - SWCompression/Deflate
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -2753,9 +2710,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
-    - BitByteData
     - SocketRocket
-    - SWCompression
 
 EXTERNAL SOURCES:
   boost:
@@ -2923,7 +2878,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  BitByteData: 2422ed269fcddc44976d97f171a183d25ef535ce
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   CookieManager: ae06e97a79ea66832add0c8aa501a7986bdbb72d
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
@@ -2932,7 +2886,7 @@ SPEC CHECKSUMS:
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
   hermes-engine: 85172f641fc64e079510cd0dffe8a8ec143c623e
-  HotUpdater: 7ced350fd99a67813f2391206d26333b38102adf
+  HotUpdater: 2e480d8cd4619176d96a0a3c930f3dc900859a55
   RCT-Folly: 59ec0ac1f2f39672a0c6e6cecdd39383b764646f
   RCTDeprecation: a41bbdd9af30bf2e5715796b313e44ec43eefff1
   RCTRequired: 7be34aabb0b77c3cefe644528df0fa0afad4e4d0
@@ -3005,7 +2959,6 @@ SPEC CHECKSUMS:
   ReactCodegen: 56090a427ec69d3db3ad93f6e60cf4a59f7465cb
   ReactCommon: 05ad684db7d88e194272ae26baddf6300e30b8b7
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
-  SWCompression: 9379873ad5e9f25b31db88c441649b59a4c2bab7
   Yoga: 5456bb010373068fc92221140921b09d126b116e
 
 PODFILE CHECKSUM: 60fb2b86377a42fff6bd152374532f99609c4d27
