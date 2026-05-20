@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+env:
+  HUSKY: '0'
+
 jobs:
   android-build:
     runs-on: ubuntu-latest

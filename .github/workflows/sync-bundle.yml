@@ -1,0 +1,108 @@
+name: Sync Bundle
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  HUSKY: '0'
+
+jobs:
+  sync-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: true
+
+      - name: Embed scripts
+        run: pnpm embed
+
+      - name: Bundle Android
+        run: |
+          mkdir -p build/android
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output build/android/index.android.bundle \
+            --assets-dest build/android
+
+      - name: Bundle iOS
+        run: |
+          mkdir -p build/ios
+          npx react-native bundle \
+            --platform ios \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output build/ios/main.jsbundle \
+            --assets-dest build/ios
+
+      - name: Sync to ham-ios
+        env:
+          DEPLOY_TOKEN: ${{ secrets.HAM_DEPLOY_TOKEN }}
+        run: |
+          git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/whu-ham/ham-ios.git /tmp/ham-ios
+          cd /tmp/ham-ios
+          git checkout master
+
+          # Clean old bundle and assets
+          rm -rf Ham/iOS/ui/rn/main.jsbundle
+          rm -rf Ham/iOS/ui/rn/assets
+
+          # Copy new bundle
+          cp $GITHUB_WORKSPACE/build/ios/main.jsbundle Ham/iOS/ui/rn/main.jsbundle
+
+          # Copy new assets
+          if [ -d "$GITHUB_WORKSPACE/build/ios/assets" ]; then
+            cp -r $GITHUB_WORKSPACE/build/ios/assets Ham/iOS/ui/rn/assets
+          fi
+
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || (git commit -m "chore: sync RN bundle from ham-rn@${GITHUB_SHA::7}" && git push origin master)
+
+      - name: Sync to ham-android
+        env:
+          DEPLOY_TOKEN: ${{ secrets.HAM_DEPLOY_TOKEN }}
+        run: |
+          git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/whu-ham/ham-android.git /tmp/ham-android
+          cd /tmp/ham-android
+          git checkout master
+
+          # Update bundle file
+          mkdir -p android/app/src/main/assets
+          cp $GITHUB_WORKSPACE/build/android/index.android.bundle android/app/src/main/assets/index.android.bundle
+
+          # Sync resource files (only copy RN-generated drawable folders, don't replace entire res)
+          if [ -d "$GITHUB_WORKSPACE/build/android/res" ]; then
+            for dir in $GITHUB_WORKSPACE/build/android/res/drawable-*; do
+              if [ -d "$dir" ]; then
+                dir_name=$(basename "$dir")
+                mkdir -p "android/app/src/main/res/$dir_name"
+                cp -r "$dir"/* "android/app/src/main/res/$dir_name/"
+              fi
+            done
+            # Also handle raw folder if exists
+            if [ -d "$GITHUB_WORKSPACE/build/android/res/raw" ]; then
+              mkdir -p android/app/src/main/res/raw
+              cp -r $GITHUB_WORKSPACE/build/android/res/raw/* android/app/src/main/res/raw/
+            fi
+          fi
+
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || (git commit -m "chore: sync RN bundle from ham-rn@${GITHUB_SHA::7}" && git push origin master)

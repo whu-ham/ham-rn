@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+env:
+  HUSKY: '0'
+
 jobs:
   eslint:
     runs-on: ubuntu-latest
