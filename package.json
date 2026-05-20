@@ -12,7 +12,7 @@
     "bundle:android": "pnpm embed && mkdir -p build/android && react-native bundle --platform android --dev false --entry-file index.js --bundle-output build/android/index.android.bundle --assets-dest build/android",
     "bundle:ios": "pnpm embed && mkdir -p build/ios && react-native bundle --platform ios --dev false --entry-file index.js --bundle-output build/ios/main.jsbundle --assets-dest build/ios",
     "deploy": "pnpm hot-updater deploy -i",
-    "prepare": "husky"
+    "prepare": "[ \"$CI\" = \"true\" ] && exit 0 || husky"
   },
   "dependencies": {
     "@hot-updater/react-native": "0.31.0",
@@ -63,7 +63,7 @@
     "husky": "^9.1.7",
     "jest": "^29.7.0",
     "jiti": "^2.7.0",
-    "lint-staged": "^17.0.5",
+    "lint-staged": "^16.1.0",
     "prettier": "3.5.3",
     "react-test-renderer": "^19.2.4",
     "tsx": "^4.21.0",

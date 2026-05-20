@@ -1,6 +1,9 @@
-branch="$(git rev-parse --abbrev-ref HEAD)"
+#!/bin/sh
 
-if [ "$branch" = "main" ]; then
-  echo "🚫 Direct push to main is not allowed. Please use a pull request."
-  exit 1
-fi
+# Read pushed refs from stdin (provided by git)
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "🚫 Direct push to main is not allowed. Please use a pull request."
+    exit 1
+  fi
+done
