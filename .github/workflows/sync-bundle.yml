@@ -87,8 +87,8 @@ jobs:
           cp -r $GITHUB_WORKSPACE/src/modules modules
 
           # Sync package.json and lockfile
-          cp $GITHUB_WORKSPACE/build/ios/package.json Ham/iOS/ui/rn/package.json
-          cp $GITHUB_WORKSPACE/build/ios/pnpm-lock.yaml Ham/iOS/ui/rn/pnpm-lock.yaml
+          cp $GITHUB_WORKSPACE/build/ios/package.json package.json
+          cp $GITHUB_WORKSPACE/build/ios/pnpm-lock.yaml pnpm-lock.yaml
 
           # Commit and push
           git config user.name "github-actions[bot]"
@@ -118,20 +118,15 @@ jobs:
           mkdir -p android/app/src/main/assets
           cp $GITHUB_WORKSPACE/build/android/index.android.bundle android/app/src/main/assets/index.android.bundle
 
-          # Sync resource files (only copy RN-generated drawable folders, don't replace entire res)
+          # Sync resource files
           if [ -d "$GITHUB_WORKSPACE/build/android/res" ]; then
-            for dir in $GITHUB_WORKSPACE/build/android/res/drawable-*; do
+            for dir in $GITHUB_WORKSPACE/build/android/res/*; do
               if [ -d "$dir" ]; then
                 dir_name=$(basename "$dir")
                 mkdir -p "android/app/src/main/res/$dir_name"
                 cp -r "$dir"/* "android/app/src/main/res/$dir_name/"
               fi
             done
-            # Also handle raw folder if exists
-            if [ -d "$GITHUB_WORKSPACE/build/android/res/raw" ]; then
-              mkdir -p android/app/src/main/res/raw
-              cp -r $GITHUB_WORKSPACE/build/android/res/raw/* android/app/src/main/res/raw/
-            fi
           fi
 
           # Sync modules
@@ -139,8 +134,8 @@ jobs:
           cp -r $GITHUB_WORKSPACE/src/modules modules
 
           # Sync package.json and lockfile
-          cp $GITHUB_WORKSPACE/build/android/package.json android/app/src/main/assets/package.json
-          cp $GITHUB_WORKSPACE/build/android/pnpm-lock.yaml android/app/src/main/assets/pnpm-lock.yaml
+          cp $GITHUB_WORKSPACE/build/android/package.json package.json
+          cp $GITHUB_WORKSPACE/build/android/pnpm-lock.yaml pnpm-lock.yaml
 
           # Commit and push
           git config user.name "github-actions[bot]"
