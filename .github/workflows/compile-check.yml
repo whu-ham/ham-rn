@@ -25,9 +25,7 @@ jobs:
           version: 10
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Embed scripts
-        run: pnpm embed
-      - name: Bundle iOS
-        run: npx react-native bundle --platform ios --dev false --entry-file index.js --bundle-output /tmp/ios.jsbundle
-      - name: Bundle Android
-        run: npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output /tmp/android.jsbundle
+      - name: Bundle
+        run: |
+          pnpm bundle:ios
+          pnpm bundle:android
