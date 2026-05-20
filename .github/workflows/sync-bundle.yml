@@ -64,8 +64,9 @@ jobs:
       - name: Sync to ham-ios
         env:
           DEPLOY_TOKEN: ${{ secrets.HAM_DEPLOY_TOKEN }}
+          TARGET_REPO: ${{ secrets.HAM_IOS_REPO }}
         run: |
-          git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/whu-ham/ham-ios.git ${{ runner.temp }}/ham-ios
+          git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/${TARGET_REPO}.git ${{ runner.temp }}/ham-ios
           cd ${{ runner.temp }}/ham-ios
           git checkout master
 
@@ -107,8 +108,9 @@ jobs:
       - name: Sync to ham-android
         env:
           DEPLOY_TOKEN: ${{ secrets.HAM_DEPLOY_TOKEN }}
+          TARGET_REPO: ${{ secrets.HAM_ANDROID_REPO }}
         run: |
-          git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/whu-ham/ham-android.git ${{ runner.temp }}/ham-android
+          git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/${TARGET_REPO}.git ${{ runner.temp }}/ham-android
           cd ${{ runner.temp }}/ham-android
           git checkout master
 
