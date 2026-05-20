@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  HUSKY: '0'
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -21,30 +24,13 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10
-          run_install: true
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Embed scripts
-        run: pnpm embed
-
-      - name: Bundle Android
+      - name: Bundle
         run: |
-          mkdir -p build/android
-          npx react-native bundle \
-            --platform android \
-            --dev false \
-            --entry-file index.js \
-            --bundle-output build/android/index.android.bundle \
-            --assets-dest build/android
-
-      - name: Bundle iOS
-        run: |
-          mkdir -p build/ios
-          npx react-native bundle \
-            --platform ios \
-            --dev false \
-            --entry-file index.js \
-            --bundle-output build/ios/main.jsbundle \
-            --assets-dest build/ios
+          pnpm bundle:android
+          pnpm bundle:ios
 
       - name: Zip bundles
         run: |

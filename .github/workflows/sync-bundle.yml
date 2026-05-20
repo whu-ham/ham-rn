@@ -1,0 +1,144 @@
+name: Sync Bundle
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: sync-bundle
+  cancel-in-progress: true
+
+env:
+  HUSKY: '0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bundle
+        run: |
+          pnpm bundle:android
+          pnpm bundle:ios
+
+      - name: Generate platform-specific package.json
+        run: npx tsx scripts/generate-platform-pkg.ts
+
+      - name: Generate lockfiles for target repos
+        run: |
+          cd build
+          (cd ios && cp ../package.ios.json package.json && pnpm install --no-frozen-lockfile && rm -rf node_modules)
+          (cd android && cp ../package.android.json package.json && pnpm install --no-frozen-lockfile && rm -rf node_modules)
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-artifacts
+          retention-days: 1
+          path: |
+            build/
+            src/modules/
+
+  sync-ios:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-artifacts
+
+      - name: Sync to ham-ios
+        env:
+          DEPLOY_TOKEN: ${{ secrets.HAM_DEPLOY_TOKEN }}
+          TARGET_REPO: ${{ secrets.HAM_IOS_REPO }}
+        run: |
+          git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/${TARGET_REPO}.git ${{ runner.temp }}/ham-ios
+          cd ${{ runner.temp }}/ham-ios
+          git checkout master
+
+          # Clean old bundle and assets
+          rm -rf Ham/iOS/ui/rn/main.jsbundle
+          rm -rf Ham/iOS/ui/rn/assets
+
+          # Copy new bundle
+          cp $GITHUB_WORKSPACE/build/ios/main.jsbundle Ham/iOS/ui/rn/main.jsbundle
+
+          # Copy new assets
+          if [ -d "$GITHUB_WORKSPACE/build/ios/assets" ]; then
+            cp -r $GITHUB_WORKSPACE/build/ios/assets Ham/iOS/ui/rn/assets
+          fi
+
+          # Sync modules
+          rm -rf modules
+          cp -r $GITHUB_WORKSPACE/src/modules modules
+
+          # Sync package.json and lockfile
+          cp $GITHUB_WORKSPACE/build/ios/package.json package.json
+          cp $GITHUB_WORKSPACE/build/ios/pnpm-lock.yaml pnpm-lock.yaml
+
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || (git commit -m "chore: sync RN bundle from ham-rn@${GITHUB_SHA::7}" && git pull --rebase origin master && git push origin master)
+
+  sync-android:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-artifacts
+
+      - name: Sync to ham-android
+        env:
+          DEPLOY_TOKEN: ${{ secrets.HAM_DEPLOY_TOKEN }}
+          TARGET_REPO: ${{ secrets.HAM_ANDROID_REPO }}
+        run: |
+          git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/${TARGET_REPO}.git ${{ runner.temp }}/ham-android
+          cd ${{ runner.temp }}/ham-android
+          git checkout master
+
+          # Update bundle file
+          mkdir -p android/app/src/main/assets
+          cp $GITHUB_WORKSPACE/build/android/index.android.bundle android/app/src/main/assets/index.android.bundle
+
+          # Sync resource files
+          if [ -d "$GITHUB_WORKSPACE/build/android/res" ]; then
+            for dir in $GITHUB_WORKSPACE/build/android/res/*; do
+              if [ -d "$dir" ]; then
+                dir_name=$(basename "$dir")
+                mkdir -p "android/app/src/main/res/$dir_name"
+                cp -r "$dir"/* "android/app/src/main/res/$dir_name/"
+              fi
+            done
+          fi
+
+          # Sync modules
+          rm -rf modules
+          cp -r $GITHUB_WORKSPACE/src/modules modules
+
+          # Sync package.json and lockfile
+          cp $GITHUB_WORKSPACE/build/android/package.json package.json
+          cp $GITHUB_WORKSPACE/build/android/pnpm-lock.yaml pnpm-lock.yaml
+
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || (git commit -m "chore: sync RN bundle from ham-rn@${GITHUB_SHA::7}" && git pull --rebase origin master && git push origin master)
