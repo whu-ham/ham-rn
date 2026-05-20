@@ -9,7 +9,7 @@ env:
   HUSKY: '0'
 
 jobs:
-  sync-bundle:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +47,85 @@ jobs:
             --bundle-output build/ios/main.jsbundle \
             --assets-dest build/ios
 
+      - name: Generate platform-specific package.json
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+
+          // Only keep hot-updater in devDependencies
+          const hotUpdaterVersion = pkg.devDependencies['hot-updater'];
+          pkg.devDependencies = {};
+          if (hotUpdaterVersion) {
+            pkg.devDependencies['hot-updater'] = hotUpdaterVersion;
+          }
+
+          // Remove fields not needed in target repos
+          delete pkg.scripts;
+          delete pkg['lint-staged'];
+
+          // Dynamically generate modulesProvider from src/modules/*.ts
+          const modulesDir = 'src/modules';
+          const moduleFiles = fs.readdirSync(modulesDir).filter(f => f.endsWith('.ts'));
+          const modulesProvider = {};
+          for (const file of moduleFiles) {
+            const name = path.basename(file, '.ts');
+            modulesProvider[name] = 'RN' + name;
+          }
+
+          // iOS version
+          const iosPkg = JSON.parse(JSON.stringify(pkg));
+          iosPkg.codegenConfig = {
+            name: 'RNNativeModuleSpec',
+            type: 'modules',
+            jsSrcsDir: 'modules',
+            ios: { modulesProvider }
+          };
+          fs.writeFileSync('build/package.ios.json', JSON.stringify(iosPkg, null, 2) + '\n');
+
+          // Android version
+          const androidPkg = JSON.parse(JSON.stringify(pkg));
+          androidPkg.codegenConfig = {
+            name: 'RNNativeModuleSpec',
+            type: 'modules',
+            jsSrcsDir: 'modules',
+            android: {
+              javaPackageName: 'com.nowcent.ham.rn.nativemodule'
+            }
+          };
+          fs.writeFileSync('build/package.android.json', JSON.stringify(androidPkg, null, 2) + '\n');
+          "
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-artifacts
+          retention-days: 1
+          path: |
+            build/
+            src/modules/
+
+  sync-ios:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-artifacts
+
       - name: Sync to ham-ios
         env:
           DEPLOY_TOKEN: ${{ secrets.HAM_DEPLOY_TOKEN }}
@@ -67,11 +146,41 @@ jobs:
             cp -r $GITHUB_WORKSPACE/build/ios/assets Ham/iOS/ui/rn/assets
           fi
 
+          # Sync modules
+          rm -rf Ham/iOS/ui/rn/modules
+          cp -r $GITHUB_WORKSPACE/src/modules Ham/iOS/ui/rn/modules
+
+          # Sync package.json and run pnpm install to generate lock file
+          cp $GITHUB_WORKSPACE/build/package.ios.json Ham/iOS/ui/rn/package.json
+          cd Ham/iOS/ui/rn
+          pnpm install --no-frozen-lockfile
+          cd /tmp/ham-ios
+
           # Commit and push
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --quiet || (git commit -m "chore: sync RN bundle from ham-rn@${GITHUB_SHA::7}" && git push origin master)
+
+  sync-android:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-artifacts
 
       - name: Sync to ham-android
         env:
@@ -100,6 +209,16 @@ jobs:
               cp -r $GITHUB_WORKSPACE/build/android/res/raw/* android/app/src/main/res/raw/
             fi
           fi
+
+          # Sync modules
+          rm -rf android/app/src/main/assets/modules
+          cp -r $GITHUB_WORKSPACE/src/modules android/app/src/main/assets/modules
+
+          # Sync package.json and run pnpm install to generate lock file
+          cp $GITHUB_WORKSPACE/build/package.android.json android/app/src/main/assets/package.json
+          cd android/app/src/main/assets
+          pnpm install --no-frozen-lockfile
+          cd /tmp/ham-android
 
           # Commit and push
           git config user.name "github-actions[bot]"
