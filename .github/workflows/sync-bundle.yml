@@ -83,8 +83,8 @@ jobs:
           fi
 
           # Sync modules
-          rm -rf Ham/iOS/ui/rn/modules
-          cp -r $GITHUB_WORKSPACE/src/modules Ham/iOS/ui/rn/modules
+          rm -rf modules
+          cp -r $GITHUB_WORKSPACE/src/modules modules
 
           # Sync package.json and lockfile
           cp $GITHUB_WORKSPACE/build/ios/package.json Ham/iOS/ui/rn/package.json
@@ -135,8 +135,8 @@ jobs:
           fi
 
           # Sync modules
-          rm -rf android/app/src/main/assets/modules
-          cp -r $GITHUB_WORKSPACE/src/modules android/app/src/main/assets/modules
+          rm -rf modules
+          cp -r $GITHUB_WORKSPACE/src/modules modules
 
           # Sync package.json and lockfile
           cp $GITHUB_WORKSPACE/build/android/package.json android/app/src/main/assets/package.json
