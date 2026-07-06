@@ -21,6 +21,7 @@ updates:
           - "react"
       hot-updater:
         patterns:
+          - "hot-updater"
           - "@hot-updater/*"
       dependencies:
         dependency-type: "production"
@@ -33,3 +34,5 @@ updates:
           - "@hot-updater/*"
       dev-dependencies:
         dependency-type: "development"
+        exclude-patterns:
+          - "hot-updater"
