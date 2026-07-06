@@ -10,7 +10,26 @@ updates:
     schedule:
       interval: "weekly"
     groups:
+      react-native:
+        patterns:
+          - "react-native"
+          - "react-native-*"
+          - "@react-native/*"
+          - "@react-native-community/*"
+      react:
+        patterns:
+          - "react"
+      hot-updater:
+        patterns:
+          - "@hot-updater/*"
       dependencies:
         dependency-type: "production"
+        exclude-patterns:
+          - "react"
+          - "react-native"
+          - "react-native-*"
+          - "@react-native/*"
+          - "@react-native-community/*"
+          - "@hot-updater/*"
       dev-dependencies:
         dependency-type: "development"
