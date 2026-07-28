@@ -1,5 +1,11 @@
 # Ham React Native
 
+[![React Native](https://img.shields.io/badge/React%20Native-0.83-61DAFB?logo=react&logoColor=white)](https://reactnative.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Bundle Check](https://github.com/whu-ham/ham-rn/actions/workflows/compile-check.yml/badge.svg)](https://github.com/whu-ham/ham-rn/actions/workflows/compile-check.yml)
+[![License](https://img.shields.io/github/license/whu-ham/ham-rn)](./LICENSE)
+[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/whu-ham/ham-rn/1-overview)
+
 A React Native component monorepo for the Ham app, providing education-related features with over-the-air (OTA) hot update support.
 
 ## Features
