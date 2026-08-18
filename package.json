@@ -15,7 +15,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@hot-updater/react-native": "0.31.0",
+    "@hot-updater/react-native": "0.36.0",
     "@preeternal/react-native-cookie-manager": "^6.3.0",
     "@react-native-community/cli-platform-android": "^20.1.0",
     "@types/color": "^3.0.6",
