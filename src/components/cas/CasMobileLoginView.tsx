@@ -42,6 +42,7 @@ const buildInjectedScript = (
    if (combineOptionsFooter) {
        combineOptionsFooter.remove();
    }
+   document.querySelectorAll('.ge-wrapper-footer, .wjmm').forEach(element => element.remove());
    const passwordLoginForm = document.querySelector('form#pwdFromId');
    const usernameElement = passwordLoginForm?.querySelector('#username');
    const passwordElement = passwordLoginForm?.querySelector('#password');
