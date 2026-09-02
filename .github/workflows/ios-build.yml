@@ -42,7 +42,7 @@ jobs:
             ${{ runner.os }}-pods-
       - name: Install CocoaPods dependencies
         working-directory: ios
-        run: pod _1.16.2_ install --deployment
+        run: pod _1.16.2_ install --no-repo-update
       - name: Embed scripts
         run: pnpm embed
       - name: Build iOS Debug
