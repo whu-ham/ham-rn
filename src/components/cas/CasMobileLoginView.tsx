@@ -62,13 +62,14 @@ const buildInjectedScript = (
    passwordElement.setAttribute('placeholder', ${JSON.stringify(
      passwordPlaceholder,
    )});
-   loginElement.onclick = function () {
+   const originalLoginHandler = loginElement.onclick;
+   loginElement.onclick = function (event) {
        if (usernameElement.value.length !== 13 && usernameElement.value.length !== 8) {
            utils.alertBox(${JSON.stringify(invalidStudentIdMessage)});
            return false;
        }
        sendMessage(true, 'login', usernameElement.value, passwordElement.value);
-       startLogin(this);
+       return originalLoginHandler.call(this, event);
    };
    if (loginElement) {
        const loginIcon = loginElement.querySelector('img, i');
