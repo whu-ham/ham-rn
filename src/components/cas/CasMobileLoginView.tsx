@@ -21,8 +21,6 @@ const buildInjectedScript = (
   passwordPlaceholder: string,
   loginButtonText: string,
   rememberMeLabelText: string,
-  agreeLabelText: string,
-  privacyPolicyText: string,
   universityNameText: string,
   privacyAgreementTip: string,
   accountExpiredTip: string,
@@ -44,9 +42,10 @@ const buildInjectedScript = (
    if (combineOptionsFooter) {
        combineOptionsFooter.remove();
    }
-   const usernameElement = document.getElementById('username');
-   const passwordElement = document.getElementById('password');
-   const loginElement = document.getElementById('login_submit');
+   const passwordLoginForm = document.querySelector('form#pwdFromId');
+   const usernameElement = passwordLoginForm?.querySelector('#username');
+   const passwordElement = passwordLoginForm?.querySelector('#password');
+   const loginElement = passwordLoginForm?.querySelector('#login_submit');
    if (!usernameElement || !passwordElement || !loginElement) {
        true;
    } else {
@@ -72,7 +71,7 @@ const buildInjectedScript = (
        startLogin(this);
    };
    if (loginElement) {
-       const loginIcon = loginElement.querySelector('i');
+       const loginIcon = loginElement.querySelector('img, i');
        const loginIconClone = loginIcon ? loginIcon.cloneNode(true) : null;
        loginElement.textContent = '';
        if (loginIconClone) {
@@ -86,26 +85,11 @@ const buildInjectedScript = (
    if (document.getElementsByClassName('main') && document.getElementsByClassName('main').length) {
        document.getElementsByClassName('main')[0].setAttribute('style', \`height: ${'$'}{window.innerHeight}px\`);
    }
-   const rememberMeLabel = document.querySelector('label[for="rememberMe"]');
-   if (rememberMeLabel) {
-       rememberMeLabel.textContent = ${JSON.stringify(rememberMeLabelText)};
+   const rememberMeText = passwordLoginForm.querySelector('#myRememberMe .change-color');
+   if (rememberMeText) {
+       rememberMeText.textContent = ${JSON.stringify(rememberMeLabelText)};
    }
-   const forgetPasswordElement = document.getElementById('mobileGetPasswordControllerId');
-   if (forgetPasswordElement) {
-       forgetPasswordElement.style.display = 'none';
-   }
-   const retrievePassElement = document.getElementById('retrievePassId');
-   if (retrievePassElement) {
-       retrievePassElement.remove();
-   }
-   const agreeLabel = document.querySelector('label[for="isAgree"]');
-   if (agreeLabel) {
-       agreeLabel.textContent = ${JSON.stringify(agreeLabelText)};
-   }
-   const privacyPolicyLink = document.querySelector('.login-idx-opt a[href*="privacyPolicy"]');
-   if (privacyPolicyLink) {
-       privacyPolicyLink.textContent = ${JSON.stringify(privacyPolicyText)};
-   }
+   document.querySelectorAll('#retrievePassPwdId, #retrievePassId').forEach(element => element.remove());
    const languageWrap = document.getElementById('languages') || document.querySelector('.language-wrap');
    if (languageWrap) {
        languageWrap.style.display = 'none';
@@ -225,8 +209,6 @@ function CasMobileLoginView(): React.JSX.Element {
         t('cas.password_placeholder'),
         t('cas.login_button'),
         t('cas.remember_me'),
-        t('cas.agree_prefix'),
-        t('cas.privacy_policy'),
         t('cas.university_name'),
         t('cas.privacy_agreement_tip'),
         t('cas.account_expired_tip'),
