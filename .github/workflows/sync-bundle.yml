@@ -68,7 +68,7 @@ jobs:
         run: |
           git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/${TARGET_REPO}.git ${{ runner.temp }}/ham-ios
           cd ${{ runner.temp }}/ham-ios
-          git checkout master
+          git checkout main
 
           # Clean old bundle and assets
           rm -rf Ham/iOS/ui/rn/main.jsbundle
@@ -94,7 +94,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || (git commit -m "chore: sync RN bundle from ham-rn@${GITHUB_SHA::7}" && git pull --rebase origin master && git push origin master)
+          git diff --cached --quiet || (git commit -m "chore: sync RN bundle from ham-rn@${GITHUB_SHA::7}" && git pull --rebase origin main && git push origin main)
 
   sync-android:
     needs: build
@@ -112,7 +112,7 @@ jobs:
         run: |
           git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/${TARGET_REPO}.git ${{ runner.temp }}/ham-android
           cd ${{ runner.temp }}/ham-android
-          git checkout master
+          git checkout main
 
           # Update bundle file
           mkdir -p android/app/src/main/assets
@@ -141,4 +141,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || (git commit -m "chore: sync RN bundle from ham-rn@${GITHUB_SHA::7}" && git pull --rebase origin master && git push origin master)
+          git diff --cached --quiet || (git commit -m "chore: sync RN bundle from ham-rn@${GITHUB_SHA::7}" && git pull --rebase origin main && git push origin main)
