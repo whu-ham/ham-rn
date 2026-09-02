@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef} from 'react';
 import {WebView} from 'react-native-webview';
 import {Linking, Platform} from 'react-native';
 import CasMobileLoginModule from '@/modules/NativeCasMobileLoginModule';
@@ -63,14 +63,18 @@ const buildInjectedScript = (
    passwordElement.setAttribute('placeholder', ${JSON.stringify(
      passwordPlaceholder,
    )});
+   const originalLoginHandler = loginElement.onclick;
    loginElement.addEventListener('click', e => {
+       e.preventDefault();
+       e.stopImmediatePropagation();
        if (usernameElement.value.length !== 13 && usernameElement.value.length !== 8) {
-           e.preventDefault();
-           e.stopImmediatePropagation();
            utils.alertBox(${JSON.stringify(invalidStudentIdMessage)});
            return;
        }
        sendMessage(true, 'login', usernameElement.value, passwordElement.value);
+       setTimeout(() => {
+           originalLoginHandler.call(loginElement);
+       }, 50);
    }, true);
    if (loginElement) {
        const loginIcon = loginElement.querySelector('i');
@@ -214,7 +218,7 @@ function CasMobileLoginView(): React.JSX.Element {
     });
   }, []);
 
-  const [userInfo, setUserInfo] = useState<UserInfo>({});
+  const userInfoRef = useRef<UserInfo>({});
   return (
     <WebView
       source={{
@@ -242,10 +246,10 @@ function CasMobileLoginView(): React.JSX.Element {
         } = JSON.parse(message.nativeEvent.data);
         if (event.type === 'postMessage') {
           const {username, password} = event.data;
-          setUserInfo({
+          userInfoRef.current = {
             studentId: username,
             password,
-          });
+          };
         }
       }}
       onShouldStartLoadWithRequest={request => {
@@ -256,8 +260,8 @@ function CasMobileLoginView(): React.JSX.Element {
           const cookieHandler = (cookies: Cookies) => {
             const cookie = buildCookieHeader(cookies);
             CasMobileLoginModule.onRequestSuccess(
-              userInfo.studentId ?? '',
-              userInfo.password ?? '',
+              userInfoRef.current.studentId ?? '',
+              userInfoRef.current.password ?? '',
               cookie,
             );
             Log.i(TAG, `login cas mobile_token - ${mobileToken}`);
