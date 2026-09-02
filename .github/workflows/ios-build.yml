@@ -29,6 +29,8 @@ jobs:
           version: 10
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Install CocoaPods
+        run: gem install cocoapods -v 1.16.2 --no-document
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
@@ -40,7 +42,7 @@ jobs:
             ${{ runner.os }}-pods-
       - name: Install CocoaPods dependencies
         working-directory: ios
-        run: pod install --deployment
+        run: pod _1.16.2_ install --deployment
       - name: Embed scripts
         run: pnpm embed
       - name: Build iOS Debug
