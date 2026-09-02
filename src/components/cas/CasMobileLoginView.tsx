@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef} from 'react';
 import {WebView} from 'react-native-webview';
 import {Linking, Platform} from 'react-native';
 import CasMobileLoginModule from '@/modules/NativeCasMobileLoginModule';
@@ -21,8 +21,6 @@ const buildInjectedScript = (
   passwordPlaceholder: string,
   loginButtonText: string,
   rememberMeLabelText: string,
-  agreeLabelText: string,
-  privacyPolicyText: string,
   universityNameText: string,
   privacyAgreementTip: string,
   accountExpiredTip: string,
@@ -44,9 +42,11 @@ const buildInjectedScript = (
    if (combineOptionsFooter) {
        combineOptionsFooter.remove();
    }
-   const usernameElement = document.getElementById('username');
-   const passwordElement = document.getElementById('password');
-   const loginElement = document.getElementById('login_submit');
+   document.querySelectorAll('.ge-wrapper-footer, .wjmm').forEach(element => element.remove());
+   const passwordLoginForm = document.querySelector('form#pwdFromId');
+   const usernameElement = passwordLoginForm?.querySelector('#username');
+   const passwordElement = passwordLoginForm?.querySelector('#password');
+   const loginElement = passwordLoginForm?.querySelector('#login_submit');
    if (!usernameElement || !passwordElement || !loginElement) {
        true;
    } else {
@@ -63,16 +63,17 @@ const buildInjectedScript = (
    passwordElement.setAttribute('placeholder', ${JSON.stringify(
      passwordPlaceholder,
    )});
-   loginElement.onclick = (e) => {
+   const originalLoginHandler = loginElement.onclick;
+   loginElement.onclick = function (event) {
        if (usernameElement.value.length !== 13 && usernameElement.value.length !== 8) {
            utils.alertBox(${JSON.stringify(invalidStudentIdMessage)});
-           return false;  
+           return false;
        }
        sendMessage(true, 'login', usernameElement.value, passwordElement.value);
-       submitLoginForm(e);
+       return originalLoginHandler.call(this, event);
    };
    if (loginElement) {
-       const loginIcon = loginElement.querySelector('i');
+       const loginIcon = loginElement.querySelector('img, i');
        const loginIconClone = loginIcon ? loginIcon.cloneNode(true) : null;
        loginElement.textContent = '';
        if (loginIconClone) {
@@ -86,26 +87,11 @@ const buildInjectedScript = (
    if (document.getElementsByClassName('main') && document.getElementsByClassName('main').length) {
        document.getElementsByClassName('main')[0].setAttribute('style', \`height: ${'$'}{window.innerHeight}px\`);
    }
-   const rememberMeLabel = document.querySelector('label[for="rememberMe"]');
-   if (rememberMeLabel) {
-       rememberMeLabel.textContent = ${JSON.stringify(rememberMeLabelText)};
+   const rememberMeText = passwordLoginForm.querySelector('#myRememberMe .change-color');
+   if (rememberMeText) {
+       rememberMeText.textContent = ${JSON.stringify(rememberMeLabelText)};
    }
-   const forgetPasswordElement = document.getElementById('mobileGetPasswordControllerId');
-   if (forgetPasswordElement) {
-       forgetPasswordElement.style.display = 'none';
-   }
-   const retrievePassElement = document.getElementById('retrievePassId');
-   if (retrievePassElement) {
-       retrievePassElement.remove();
-   }
-   const agreeLabel = document.querySelector('label[for="isAgree"]');
-   if (agreeLabel) {
-       agreeLabel.textContent = ${JSON.stringify(agreeLabelText)};
-   }
-   const privacyPolicyLink = document.querySelector('.login-idx-opt a[href*="privacyPolicy"]');
-   if (privacyPolicyLink) {
-       privacyPolicyLink.textContent = ${JSON.stringify(privacyPolicyText)};
-   }
+   document.querySelectorAll('#retrievePassPwdId, #retrievePassId').forEach(element => element.remove());
    const languageWrap = document.getElementById('languages') || document.querySelector('.language-wrap');
    if (languageWrap) {
        languageWrap.style.display = 'none';
@@ -213,7 +199,7 @@ function CasMobileLoginView(): React.JSX.Element {
     });
   }, []);
 
-  const [userInfo, setUserInfo] = useState<UserInfo>({});
+  const userInfoRef = useRef<UserInfo>({});
   return (
     <WebView
       source={{
@@ -225,8 +211,6 @@ function CasMobileLoginView(): React.JSX.Element {
         t('cas.password_placeholder'),
         t('cas.login_button'),
         t('cas.remember_me'),
-        t('cas.agree_prefix'),
-        t('cas.privacy_policy'),
         t('cas.university_name'),
         t('cas.privacy_agreement_tip'),
         t('cas.account_expired_tip'),
@@ -241,10 +225,10 @@ function CasMobileLoginView(): React.JSX.Element {
         } = JSON.parse(message.nativeEvent.data);
         if (event.type === 'postMessage') {
           const {username, password} = event.data;
-          setUserInfo({
+          userInfoRef.current = {
             studentId: username,
             password,
-          });
+          };
         }
       }}
       onShouldStartLoadWithRequest={request => {
@@ -255,8 +239,8 @@ function CasMobileLoginView(): React.JSX.Element {
           const cookieHandler = (cookies: Cookies) => {
             const cookie = buildCookieHeader(cookies);
             CasMobileLoginModule.onRequestSuccess(
-              userInfo.studentId ?? '',
-              userInfo.password ?? '',
+              userInfoRef.current.studentId ?? '',
+              userInfoRef.current.password ?? '',
               cookie,
             );
             Log.i(TAG, `login cas mobile_token - ${mobileToken}`);
