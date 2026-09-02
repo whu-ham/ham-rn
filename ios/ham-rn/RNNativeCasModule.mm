@@ -1,4 +1,5 @@
 #import <RNNativeModuleSpec/RNNativeModuleSpec.h>
+#import "RNCasSession.h"
 
 @interface RNNativeCasModule : NativeCasModuleSpecBase <NativeCasModuleSpec>
 @end
@@ -9,7 +10,7 @@ RCT_EXPORT_MODULE(NativeCasModule)
 
 - (NSString *)requestCasCookie {
   NSLog(@"[RNNativeCasModule] requestCasCookie");
-  return @"";
+  return RNCasCookie;
 }
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:(const facebook::react::ObjCTurboModule::InitParams &)params {

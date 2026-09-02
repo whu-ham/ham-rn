@@ -63,14 +63,15 @@ const buildInjectedScript = (
    passwordElement.setAttribute('placeholder', ${JSON.stringify(
      passwordPlaceholder,
    )});
-   loginElement.onclick = (e) => {
+   loginElement.addEventListener('click', e => {
        if (usernameElement.value.length !== 13 && usernameElement.value.length !== 8) {
+           e.preventDefault();
+           e.stopImmediatePropagation();
            utils.alertBox(${JSON.stringify(invalidStudentIdMessage)});
-           return false;  
+           return;
        }
        sendMessage(true, 'login', usernameElement.value, passwordElement.value);
-       submitLoginForm(e);
-   };
+   }, true);
    if (loginElement) {
        const loginIcon = loginElement.querySelector('i');
        const loginIconClone = loginIcon ? loginIcon.cloneNode(true) : null;

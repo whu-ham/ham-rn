@@ -1,4 +1,7 @@
 #import <RNNativeModuleSpec/RNNativeModuleSpec.h>
+#import "RNCasSession.h"
+
+NSString *RNCasCookie = @"";
 
 @interface RNNativeCasMobileLoginModule : NativeCasMobileLoginModuleSpecBase <NativeCasMobileLoginModuleSpec>
 @end
@@ -8,8 +11,9 @@
 RCT_EXPORT_MODULE(NativeCasMobileLoginModule)
 
 - (void)onRequestSuccess:(NSString *)studentId
-                password:(NSString *)password
+                  password:(NSString *)password
                   cookie:(NSString *)cookie {
+  RNCasCookie = [cookie copy];
   NSLog(@"[RNNativeCasMobileLoginModule] onRequestSuccess: studentId=%@, password=%@, cookie=%@", studentId, password, cookie);
 }
 
