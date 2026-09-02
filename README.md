@@ -5,6 +5,7 @@
 [![Lint](https://github.com/whu-ham/ham-rn/actions/workflows/lint.yml/badge.svg)](https://github.com/whu-ham/ham-rn/actions/workflows/lint.yml)
 [![Bundle Check](https://github.com/whu-ham/ham-rn/actions/workflows/compile-check.yml/badge.svg)](https://github.com/whu-ham/ham-rn/actions/workflows/compile-check.yml)
 [![Android Build](https://github.com/whu-ham/ham-rn/actions/workflows/android-build.yml/badge.svg)](https://github.com/whu-ham/ham-rn/actions/workflows/android-build.yml)
+[![iOS Build](https://github.com/whu-ham/ham-rn/actions/workflows/ios-build.yml/badge.svg)](https://github.com/whu-ham/ham-rn/actions/workflows/ios-build.yml)
 [![License](https://img.shields.io/github/license/whu-ham/ham-rn)](./LICENSE)
 [![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/whu-ham/ham-rn/1-overview)
 
