@@ -5,18 +5,12 @@
  */
 import React, {useEffect} from 'react';
 import '@/i18n/i18n';
-import {
-  BackHandler,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import {BackHandler, ScrollView, StyleSheet, Text, View} from 'react-native';
 import Color from 'color';
 import {useTranslation} from 'react-i18next';
 import type {CourseEntity} from '@/business/education/course';
 import {useColor} from '@/utils/color/color';
+import PrimaryButton from '@/utils/ui/PrimaryButton';
 
 /**
  * Tells the user which courses the parser could not place on the timetable,
@@ -107,35 +101,30 @@ const IgnoredCourseDialog = ({
           ))}
         </ScrollView>
 
-        <TouchableOpacity
-          testID={testID ? `${testID}-confirm` : undefined}
-          style={styles.button}
-          onPress={onAcknowledge}>
-          <Text style={[styles.confirmText, {color: color.ham_blue}]}>
-            {canImport
-              ? t('education.ignored_course_ok')
-              : t('education.ignored_course_ok_no_import')}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.buttonRow}>
+          <PrimaryButton
+            testID={testID ? `${testID}-confirm` : undefined}
+            label={t('education.ignored_course_ok')}
+            onPress={onAcknowledge}
+          />
+        </View>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  button: {
+  // The button is full-width inside the card, so centring it is just a matter
+  // of not constraining it; the row exists to keep the list from pushing it.
+  buttonRow: {
     alignItems: 'center',
-    paddingVertical: 10,
+    marginTop: 4,
   },
   card: {
     borderRadius: 16,
     maxHeight: '80%',
     padding: 20,
     width: '85%',
-  },
-  confirmText: {
-    fontSize: 15,
-    fontWeight: '600',
   },
   item: {
     paddingVertical: 6,

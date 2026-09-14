@@ -22,7 +22,6 @@
     "course_fetch_failed_with_reason": "Failed to fetch courses! {{reason}}",
     "ignored_course_all_failed_ack": "No course could be parsed, so nothing was imported. Your timetable is unchanged.",
     "ignored_course_ok": "OK",
-    "ignored_course_ok_no_import": "OK",
     "ignored_course_reason": "Unrecognised week schedule \"{{weekText}}\"",
     "ignored_course_reason_missing": "The education system provided no week schedule",
     "ignored_course_summary": "The week schedule of these {{count}} course(s) could not be read, so they will be missing from the imported timetable:",

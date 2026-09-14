@@ -21,8 +21,7 @@
   "education": {
     "course_fetch_failed_with_reason": "获取课程失败! {{reason}}",
     "ignored_course_all_failed_ack": "全部课程均无法解析,未导入。课表保持原样。",
-    "ignored_course_ok": "知道了",
-    "ignored_course_ok_no_import": "知道了",
+    "ignored_course_ok": "好的",
     "ignored_course_reason": "上课周次“{{weekText}}”无法识别",
     "ignored_course_reason_missing": "教务系统未提供上课周次",
     "ignored_course_summary": "以下 {{count}} 门课程无法解析上课时间,导入后课表中将不会出现它们:",

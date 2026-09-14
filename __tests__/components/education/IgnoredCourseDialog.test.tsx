@@ -148,9 +148,21 @@ describe('IgnoredCourseDialog', () => {
     await renderDialog([course('A', 'A1')]);
     expect(screen.getByTestId('ignored-confirm')).toBeTruthy();
     expect(screen.queryByTestId('ignored-cancel')).toBeNull();
-    expect(screen.getByTestId('ignored-confirm')).toHaveTextContent(
+  });
+
+  it('labels the button with the acknowledgement copy', async () => {
+    await renderDialog([course('A', 'A1')]);
+    expect(screen.getByTestId('ignored-confirm-text')).toHaveTextContent(
       zh.education.ignored_course_ok,
     );
+  });
+
+  it('acknowledges when the button label itself is pressed', async () => {
+    const onAcknowledge = jest.fn();
+    await renderDialog([course('A', 'A1')], {onAcknowledge});
+
+    await fireEvent.press(screen.getByTestId('ignored-confirm-text'));
+    expect(onAcknowledge).toHaveBeenCalledTimes(1);
   });
 
   it('acknowledges only once the user presses the button', async () => {
@@ -169,10 +181,10 @@ describe('IgnoredCourseDialog', () => {
     );
   });
 
-  it('labels the button as a plain acknowledgement when nothing parsed', async () => {
+  it('keeps the acknowledgement label when nothing parsed', async () => {
     await renderDialog([course('A', 'A1')], {canImport: false});
-    expect(screen.getByTestId('ignored-confirm')).toHaveTextContent(
-      zh.education.ignored_course_ok_no_import,
+    expect(screen.getByTestId('ignored-confirm-text')).toHaveTextContent(
+      zh.education.ignored_course_ok,
     );
   });
 
