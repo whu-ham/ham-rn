@@ -17,7 +17,7 @@ const CaptchaView = ({
   return (
     <WebView
       source={{html}}
-      onMessage={(e: WebViewMessageEvent) => {
+      onMessage={(e: WebViewMessageEvent): void => {
         const data = JSON.parse(e.nativeEvent.data) as {token: string};
         onGetToken(data.token);
       }}
