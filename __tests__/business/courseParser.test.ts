@@ -78,6 +78,9 @@ it('falls back to empty strings and -1 for missing fields', () => {
     color: getRandomColorHexString(''),
     semester: 1,
     year: 2024,
+    // Recorded so the UI can say the system sent no week schedule at all,
+    // rather than showing a blank reason for an unparsable course.
+    rawWeekText: '',
     instructor: '',
     instructorType: '',
     courseType: '',
@@ -343,6 +346,40 @@ describe('toNativeCoursePairing', () => {
 
   it('handles an empty map without reporting anything ignored', () => {
     expect(toNativeCoursePairing(new Map())).toEqual([[], [], []]);
+  });
+
+  it('strips the diagnostics field from courses it keeps', () => {
+    const kept = {...entity('A'), rawWeekText: '1-4周'};
+    const [courses] = toNativeCoursePairing(
+      new Map<CourseEntity, CourseGridEntity[]>([[kept, [grid(1)]]]),
+    );
+    // The native entity has no such column, so it must not cross the boundary.
+    expect(courses[0]).not.toHaveProperty('rawWeekText');
+  });
+
+  it('leaves the diagnostics field on the courses it drops', () => {
+    const dropped = {...entity('B'), rawWeekText: '全周'};
+    const [, , ignored] = toNativeCoursePairing(
+      new Map<CourseEntity, CourseGridEntity[]>([[dropped, []]]),
+    );
+    expect(ignored[0].rawWeekText).toBe('全周');
+  });
+});
+
+describe('unparsable week diagnostics', () => {
+  it('records the week text the system sent when nothing parsed', () => {
+    const course = firstCourse([{kcmc: 'A', zcd: '全周'}]);
+    expect(course.rawWeekText).toBe('全周');
+  });
+
+  it('records an empty week text when the field is absent', () => {
+    expect(firstCourse([{kcmc: 'A'}]).rawWeekText).toBe('');
+  });
+
+  it('does not record a week text once the course parsed', () => {
+    expect(
+      firstCourse([{kcmc: 'A', zcd: '1-4周'}]).rawWeekText,
+    ).toBeUndefined();
   });
 });
 

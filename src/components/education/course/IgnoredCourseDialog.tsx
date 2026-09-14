@@ -3,9 +3,10 @@
  * @version 1.0
  * @date 2026/9/14
  */
-import React from 'react';
+import React, {useEffect} from 'react';
 import '@/i18n/i18n';
 import {
+  BackHandler,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,24 +19,39 @@ import type {CourseEntity} from '@/business/education/course';
 import {useColor} from '@/utils/color/color';
 
 /**
- * Blocks the import until the user acknowledges the courses the parser could
- * not place on the timetable. Importing without asking would silently shrink
- * the timetable, which reads as "the semester has no such course" rather than
- * "the app failed to read it".
+ * Tells the user which courses the parser could not place on the timetable,
+ * and why. It is a notice, not a choice: the user cannot fix a week string the
+ * education system sent, so offering "import anyway" only asks them to
+ * authorise a timetable they cannot evaluate. The import proceeds once they
+ * acknowledge it.
  */
 const IgnoredCourseDialog = ({
   courses,
-  onConfirm,
-  onCancel,
+  canImport,
+  onAcknowledge,
   testID,
 }: {
   courses: CourseEntity[];
-  onConfirm: () => void;
-  onCancel: () => void;
+  canImport: boolean;
+  onAcknowledge: () => void;
   testID?: string;
 }): React.ReactElement => {
   const {t} = useTranslation();
   const color = useColor();
+
+  // The host app blocks on a callback, so the back button must run the same
+  // acknowledgement it would on a tap — otherwise it dismisses the dialog and
+  // leaves the host waiting forever.
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        onAcknowledge();
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [onAcknowledge]);
 
   return (
     <View
@@ -55,7 +71,11 @@ const IgnoredCourseDialog = ({
         <Text
           testID={testID ? `${testID}-summary` : undefined}
           style={[styles.summary, {color: color.ham_text_secondary}]}>
-          {t('education.ignored_course_summary', {count: courses.length})}
+          {canImport
+            ? t('education.ignored_course_summary', {count: courses.length})
+            : t('education.ignored_course_summary_all_failed', {
+                count: courses.length,
+              })}
         </Text>
 
         <ScrollView
@@ -74,36 +94,29 @@ const IgnoredCourseDialog = ({
                   course.courseId ||
                   t('education.unnamed_course')}
               </Text>
-              {course.name !== '' && course.courseId !== '' ? (
-                <Text
-                  testID={testID ? `${testID}-item-id-${index}` : undefined}
-                  style={[styles.itemId, {color: color.ham_text_secondary}]}>
-                  {course.courseId}
-                </Text>
-              ) : null}
+              <Text
+                testID={testID ? `${testID}-item-reason-${index}` : undefined}
+                style={[styles.itemReason, {color: color.ham_text_secondary}]}>
+                {course.rawWeekText
+                  ? t('education.ignored_course_reason', {
+                      weekText: course.rawWeekText,
+                    })
+                  : t('education.ignored_course_reason_missing')}
+              </Text>
             </View>
           ))}
         </ScrollView>
 
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            testID={testID ? `${testID}-cancel` : undefined}
-            style={styles.button}
-            onPress={onCancel}>
-            <Text
-              style={[styles.cancelText, {color: color.ham_text_secondary}]}>
-              {t('education.ignored_course_cancel')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            testID={testID ? `${testID}-confirm` : undefined}
-            style={styles.button}
-            onPress={onConfirm}>
-            <Text style={[styles.confirmText, {color: color.ham_blue}]}>
-              {t('education.ignored_course_import')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          testID={testID ? `${testID}-confirm` : undefined}
+          style={styles.button}
+          onPress={onAcknowledge}>
+          <Text style={[styles.confirmText, {color: color.ham_blue}]}>
+            {canImport
+              ? t('education.ignored_course_ok')
+              : t('education.ignored_course_ok_no_import')}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -112,15 +125,7 @@ const IgnoredCourseDialog = ({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    flexGrow: 1,
     paddingVertical: 10,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  cancelText: {
-    fontSize: 15,
   },
   card: {
     borderRadius: 16,
@@ -133,13 +138,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   item: {
-    paddingVertical: 4,
-  },
-  itemId: {
-    fontSize: 12,
+    paddingVertical: 6,
   },
   itemName: {
     fontSize: 14,
+  },
+  itemReason: {
+    fontSize: 12,
+    marginTop: 2,
   },
   list: {
     marginBottom: 8,

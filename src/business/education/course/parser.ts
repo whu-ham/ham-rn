@@ -75,7 +75,11 @@ const parseResponse = ({
     // A course with no parsable weeks stays in the map with an empty grid
     // list; parseResponse keeps reporting what the system sent. Dropping it
     // is toNativeCoursePairing's job, at the native boundary.
-    const courseGridList = getEmptyCourseGridWithWeek(data.zcd ?? '');
+    const rawWeekText = data.zcd ?? '';
+    const courseGridList = getEmptyCourseGridWithWeek(rawWeekText);
+    if (courseGridList.length === 0) {
+      course.rawWeekText = rawWeekText;
+    }
 
     const weekFrom = Math.min(...courseGridList.map(grid => grid.week));
     const weekTo = Math.max(...courseGridList.map(grid => grid.week));
@@ -225,7 +229,12 @@ const toNativeCoursePairing = (courseListResult: {
       ignoredCourseList.push(course);
       continue;
     }
-    nativeCourseList.push(course);
+    // `rawWeekText` exists only to explain a course to the user. The native
+    // entity has no such column, and an unexpected key is one the host app
+    // would have to ignore — so drop it at the boundary rather than there.
+    const nativeCourse = {...course};
+    delete nativeCourse.rawWeekText;
+    nativeCourseList.push(nativeCourse);
     nativeCourseGridList.push(courseGridList);
   }
   return [nativeCourseList, nativeCourseGridList, ignoredCourseList];

@@ -4,12 +4,35 @@ import IgnoredCourseDialog from '@/components/education/course/IgnoredCourseDial
 import zh from '@/i18n/zh/translation.json';
 import type {CourseEntity} from '@/business/education/course/type.ts';
 
+// Mocked here rather than in jest.setup.ts: only this component registers a
+// back handler, and a global mock would hide the real addEventListener from
+// every other suite. The mock records handlers so tests can invoke them.
+const backHandlers: Array<() => boolean> = [];
+const backSubscriptions: Array<{remove: jest.Mock}> = [];
+jest.mock('react-native/Libraries/Utilities/BackHandler', () => ({
+  __esModule: true,
+  default: {
+    addEventListener: jest.fn((_event: string, handler: () => boolean) => {
+      backHandlers.push(handler);
+      // One shared subscription per call, so a test can assert on the exact
+      // `remove` the component will call on unmount.
+      const subscription = {remove: jest.fn()};
+      backSubscriptions.push(subscription);
+      return subscription;
+    }),
+  },
+}));
+
 /**
- * The dialog is what stands between a partial parse and an import, so the
- * things that matter are: it names every dropped course, and neither button
- * does anything the user did not ask for.
+ * The dialog is a notice, not a choice: it names each dropped course and says
+ * why, and the single button acknowledges it. The user cannot repair a week
+ * string the education system sent, so there is nothing to decide.
  */
-const course = (name: string, courseId: string): CourseEntity => ({
+const course = (
+  name: string,
+  courseId: string,
+  rawWeekText?: string,
+): CourseEntity => ({
   name,
   courseId,
   instructor: '',
@@ -23,26 +46,31 @@ const course = (name: string, courseId: string): CourseEntity => ({
   credit: 0,
   location: '',
   color: '',
+  ...(rawWeekText === undefined ? {} : {rawWeekText}),
 });
 
 const renderDialog = async (
   courses: CourseEntity[],
-  overrides: {onConfirm?: jest.Mock; onCancel?: jest.Mock} = {},
+  overrides: {onAcknowledge?: jest.Mock; canImport?: boolean} = {},
 ) => {
-  const onConfirm = overrides.onConfirm ?? jest.fn();
-  const onCancel = overrides.onCancel ?? jest.fn();
+  const onAcknowledge = overrides.onAcknowledge ?? jest.fn();
   const utils = await render(
     <IgnoredCourseDialog
       testID="ignored"
       courses={courses}
-      onConfirm={onConfirm}
-      onCancel={onCancel}
+      canImport={overrides.canImport ?? true}
+      onAcknowledge={onAcknowledge}
     />,
   );
-  return {...utils, onConfirm, onCancel};
+  return {...utils, onAcknowledge};
 };
 
 describe('IgnoredCourseDialog', () => {
+  beforeEach(() => {
+    backHandlers.length = 0;
+    backSubscriptions.length = 0;
+  });
+
   it('renders the localized title', async () => {
     await renderDialog([course('高等数学', 'MATH001')]);
     expect(screen.getByTestId('ignored-title')).toHaveTextContent(
@@ -73,8 +101,32 @@ describe('IgnoredCourseDialog', () => {
     expect(screen.getByTestId('ignored-item-name-0')).toHaveTextContent(
       '高等数学',
     );
-    expect(screen.getByTestId('ignored-item-id-0')).toHaveTextContent(
-      'MATH001',
+  });
+
+  it('shows the reason a course was dropped', async () => {
+    await renderDialog([course('高等数学', 'MATH001', '全周')]);
+    expect(screen.getByTestId('ignored-item-reason-0')).toHaveTextContent(
+      zh.education.ignored_course_reason.replace('{{weekText}}', '全周'),
+    );
+  });
+
+  it('shows a reason for every dropped course', async () => {
+    await renderDialog([
+      course('A', 'A1', '全周'),
+      course('B', 'B1', '第1-8周(单)'),
+    ]);
+    expect(screen.getByTestId('ignored-item-reason-0')).toHaveTextContent(
+      zh.education.ignored_course_reason.replace('{{weekText}}', '全周'),
+    );
+    expect(screen.getByTestId('ignored-item-reason-1')).toHaveTextContent(
+      zh.education.ignored_course_reason.replace('{{weekText}}', '第1-8周(单)'),
+    );
+  });
+
+  it('says so when the system sent no week text at all', async () => {
+    await renderDialog([course('A', 'A1')]);
+    expect(screen.getByTestId('ignored-item-reason-0')).toHaveTextContent(
+      zh.education.ignored_course_reason_missing,
     );
   });
 
@@ -90,40 +142,72 @@ describe('IgnoredCourseDialog', () => {
     expect(screen.getByTestId('ignored-item-name-0')).toHaveTextContent(
       zh.education.unnamed_course,
     );
-    expect(screen.queryByTestId('ignored-item-id-0')).toBeNull();
   });
 
-  it('imports only when the user presses import', async () => {
-    const onConfirm = jest.fn();
-    await renderDialog([course('A', 'A1')], {onConfirm});
-    expect(onConfirm).not.toHaveBeenCalled();
+  it('offers exactly one button, and no import choice', async () => {
+    await renderDialog([course('A', 'A1')]);
+    expect(screen.getByTestId('ignored-confirm')).toBeTruthy();
+    expect(screen.queryByTestId('ignored-cancel')).toBeNull();
+    expect(screen.getByTestId('ignored-confirm')).toHaveTextContent(
+      zh.education.ignored_course_ok,
+    );
+  });
+
+  it('acknowledges only once the user presses the button', async () => {
+    const onAcknowledge = jest.fn();
+    await renderDialog([course('A', 'A1')], {onAcknowledge});
+    expect(onAcknowledge).not.toHaveBeenCalled();
 
     await fireEvent.press(screen.getByTestId('ignored-confirm'));
-    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onAcknowledge).toHaveBeenCalledTimes(1);
   });
 
-  it('cancels only when the user presses cancel', async () => {
-    const onCancel = jest.fn();
-    await renderDialog([course('A', 'A1')], {onCancel});
-
-    await fireEvent.press(screen.getByTestId('ignored-cancel'));
-    expect(onCancel).toHaveBeenCalledTimes(1);
+  it('explains that nothing will be imported when nothing parsed', async () => {
+    await renderDialog([course('A', 'A1', '全周')], {canImport: false});
+    expect(screen.getByTestId('ignored-summary')).toHaveTextContent(
+      zh.education.ignored_course_summary_all_failed.replace('{{count}}', '1'),
+    );
   });
 
-  it('does not confirm when the user cancels', async () => {
-    const onConfirm = jest.fn();
-    await renderDialog([course('A', 'A1')], {onConfirm});
+  it('labels the button as a plain acknowledgement when nothing parsed', async () => {
+    await renderDialog([course('A', 'A1')], {canImport: false});
+    expect(screen.getByTestId('ignored-confirm')).toHaveTextContent(
+      zh.education.ignored_course_ok_no_import,
+    );
+  });
 
-    await fireEvent.press(screen.getByTestId('ignored-cancel'));
-    expect(onConfirm).not.toHaveBeenCalled();
+  it('still lists the courses when nothing parsed', async () => {
+    await renderDialog([course('A', 'A1', '全周')], {canImport: false});
+    expect(screen.getByTestId('ignored-item-name-0')).toHaveTextContent('A');
+  });
+
+  it('treats the hardware back button as an acknowledgement', async () => {
+    const onAcknowledge = jest.fn();
+    await renderDialog([course('A', 'A1')], {onAcknowledge});
+
+    // Invoke the handler the component actually registered rather than just
+    // asserting the spy fired: the spy would pass even with no subscription.
+    expect(backHandlers).toHaveLength(1);
+    expect(backHandlers[0]()).toBe(true);
+    expect(onAcknowledge).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops handling the back button once unmounted', async () => {
+    const {unmount} = await renderDialog([course('A', 'A1')]);
+    expect(backSubscriptions).toHaveLength(1);
+
+    // RNTL v14's unmount is async like render; without the await no effect
+    // cleanup runs and this assertion would fail for the wrong reason.
+    await unmount();
+    expect(backSubscriptions[0].remove).toHaveBeenCalled();
   });
 
   it('omits testIDs entirely when no testID prop is given', async () => {
     await render(
       <IgnoredCourseDialog
         courses={[course('A', 'A1')]}
-        onConfirm={jest.fn()}
-        onCancel={jest.fn()}
+        canImport
+        onAcknowledge={jest.fn()}
       />,
     );
     expect(screen.queryByTestId('ignored')).toBeNull();

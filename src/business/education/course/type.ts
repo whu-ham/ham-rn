@@ -20,6 +20,12 @@ interface CourseEntity {
   color: string;
   year?: number;
   semester?: number;
+  /**
+   * The week string exactly as the education system sent it, kept so a course
+   * that failed to parse can say why. Stripped before the course is handed to
+   * the native side, which has no such field.
+   */
+  rawWeekText?: string;
 }
 
 interface CourseGridEntity {

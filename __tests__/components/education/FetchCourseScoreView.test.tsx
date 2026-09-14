@@ -172,10 +172,11 @@ describe('FetchCourseView', () => {
 });
 
 /**
- * A timetable parsed with holes must not reach the host app until the user has
- * seen what was dropped and accepted it.
+ * A timetable parsed with holes reaches the host only after the user has seen
+ * what was dropped. The dialog is a notice, not a choice — the import still
+ * runs, it just waits for the acknowledgement.
  */
-describe('FetchCourseView ignored-course confirmation', () => {
+describe('FetchCourseView ignored-course notice', () => {
   const course = (name: string) => ({name, courseId: `id-${name}`});
   const grid = (week: number) => [
     {week, weekday: 1, classFrom: 1, classTo: 2, color: '#fff'},
@@ -205,7 +206,7 @@ describe('FetchCourseView ignored-course confirmation', () => {
     expect(screen.queryByTestId('fetch-course-view-ignored')).toBeNull();
   });
 
-  it('holds back the import and shows the dialog when courses were ignored', async () => {
+  it('holds the import back and shows the notice when courses were ignored', async () => {
     await renderWith(
       new Map([
         [course('A'), grid(1)],
@@ -238,7 +239,44 @@ describe('FetchCourseView ignored-course confirmation', () => {
     expect(screen.queryByTestId('fetch-course-view-ignored-item-2')).toBeNull();
   });
 
-  it('imports the parsed courses once the user confirms', async () => {
+  it('says why each course was ignored', async () => {
+    (getCourseList as jest.Mock).mockResolvedValue([
+      new Map<Record<string, unknown>, Array<Record<string, unknown>>>(),
+      {studentId: ''},
+    ]);
+    // Go through the real parser so the ignored course carries the week text
+    // the education system actually sent.
+    const {parseResponse} = jest.requireActual(
+      '@/business/education/course/parser',
+    );
+    const [parsed] = parseResponse({
+      json: {
+        xsxx: {},
+        kbList: [
+          {kcmc: '高等数学', jxbmc: 'MATH001', zcd: '全周'},
+          {kcmc: '英语', jxbmc: 'ENG001', zcd: '1-8周'},
+        ],
+      },
+      year: 2026,
+      semester: 1,
+    });
+    (getCourseList as jest.Mock).mockResolvedValue([parsed, {studentId: ''}]);
+
+    await render(<FetchCourseView />);
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId('fetch-course-view-ignored-item-name-0'),
+    ).toHaveTextContent('高等数学');
+    expect(
+      screen.getByTestId('fetch-course-view-ignored-item-reason-0'),
+    ).toHaveTextContent(
+      zh.education.ignored_course_reason.replace('{{weekText}}', '全周'),
+    );
+  });
+
+  it('imports the parsed courses once the user acknowledges', async () => {
     await renderWith(
       new Map([
         [course('A'), grid(1)],
@@ -262,7 +300,7 @@ describe('FetchCourseView ignored-course confirmation', () => {
     );
   });
 
-  it('dismisses the dialog after confirming', async () => {
+  it('dismisses the notice after acknowledging', async () => {
     await renderWith(
       new Map([
         [course('A'), grid(1)],
@@ -280,32 +318,7 @@ describe('FetchCourseView ignored-course confirmation', () => {
     );
   });
 
-  it('imports nothing when the user cancels', async () => {
-    await renderWith(
-      new Map([
-        [course('A'), grid(1)],
-        [course('B'), []],
-      ]),
-    );
-    await waitFor(() =>
-      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
-    );
-
-    await fireEvent.press(
-      screen.getByTestId('fetch-course-view-ignored-cancel'),
-    );
-
-    await waitFor(() =>
-      expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
-        [],
-        [],
-        zh.education.import_cancelled,
-      ),
-    );
-    expect(EducationModule.onGetCourseList).toHaveBeenCalledTimes(1);
-  });
-
-  it('dismisses the dialog after cancelling', async () => {
+  it('imports only once when acknowledged', async () => {
     await renderWith(
       new Map([
         [course('A'), grid(1)],
@@ -316,14 +329,58 @@ describe('FetchCourseView ignored-course confirmation', () => {
       expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
     );
     await fireEvent.press(
-      screen.getByTestId('fetch-course-view-ignored-cancel'),
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
     );
     await waitFor(() =>
       expect(screen.queryByTestId('fetch-course-view-ignored')).toBeNull(),
     );
+    expect(EducationModule.onGetCourseList).toHaveBeenCalledTimes(1);
   });
 
-  it('does not re-run the fetch behind the dialog', async () => {
+  it('does not import when every course failed to parse', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), []],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+
+    // An empty success payload would let a replace-semantics host wipe the
+    // timetable, so this must read as an error, not as "imported nothing".
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+        [],
+        [],
+        zh.education.ignored_course_all_failed_ack,
+      ),
+    );
+  });
+
+  it('explains that nothing will be imported when every course failed', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), []],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId('fetch-course-view-ignored-summary'),
+    ).toHaveTextContent(
+      zh.education.ignored_course_summary_all_failed.replace('{{count}}', '2'),
+    );
+  });
+
+  it('does not re-run the fetch behind the notice', async () => {
     await renderWith(
       new Map([
         [course('A'), grid(1)],
