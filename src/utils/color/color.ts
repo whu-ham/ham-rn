@@ -3,31 +3,30 @@
  * @version 1.0
  * @date 2024/8/3 14:37
  */
-import type {ColorValue} from 'react-native';
 import {Appearance} from 'react-native';
 import {useEffect, useState} from 'react';
 
 interface ThemeColor {
-  ham_red: ColorValue;
-  ham_orange: ColorValue;
-  ham_yellow: ColorValue;
-  ham_green: ColorValue;
-  ham_mint: ColorValue;
-  ham_teal: ColorValue;
-  ham_cyan: ColorValue;
-  ham_blue: ColorValue;
-  ham_indigo: ColorValue;
-  ham_purple: ColorValue;
-  ham_pink: ColorValue;
-  ham_brown: ColorValue;
-  ham_gray: ColorValue;
-  ham_text_primary: ColorValue;
-  ham_text_secondary: ColorValue;
-  ham_bg_b1: ColorValue;
-  ham_bg_b2: ColorValue;
-  ham_divider: ColorValue;
-  ham_lightGray: ColorValue;
-  ham_lightBlue: ColorValue;
+  ham_red: string;
+  ham_orange: string;
+  ham_yellow: string;
+  ham_green: string;
+  ham_mint: string;
+  ham_teal: string;
+  ham_cyan: string;
+  ham_blue: string;
+  ham_indigo: string;
+  ham_purple: string;
+  ham_pink: string;
+  ham_brown: string;
+  ham_gray: string;
+  ham_text_primary: string;
+  ham_text_secondary: string;
+  ham_bg_b1: string;
+  ham_bg_b2: string;
+  ham_divider: string;
+  ham_lightGray: string;
+  ham_lightBlue: string;
 }
 
 const lightColor: ThemeColor = {
