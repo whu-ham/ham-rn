@@ -1,0 +1,57 @@
+appId: org.reactjs.native.example.ham-rn
+name: Ignored courses are reported with a reason before the import completes
+---
+# Drives the real course-import path end to end with a canned payload, and
+# asserts the notice names every course the parser could not place and says why.
+#
+# Why the E2E entry: the suite has no credentials for cas.whu.edu.cn and cannot
+# fabricate a CAS session, so it cannot drive the real fetch. RNFetchCourseViewE2E
+# renders the same FetchCourseView but substitutes the two HTTP calls with
+# src/e2e/courseFixture.ts. Everything else — loginEducation, getCourseList,
+# parseResponse, toNativeCoursePairing, the notice — is the production code.
+#
+# Two assertion rules, both load-bearing:
+#
+#   - Never assert i18next copy. The language comes from
+#     NativeCommonModule.getLocale(), which reads the device locale and ignores
+#     `defaults write -g AppleLanguages`. Any translated string is a flake on a
+#     non-English device.
+#   - Never assert on `testID`. RN's testID does not reach iOS's accessibility
+#     tree, so Maestro cannot see it. The elements below are selected by
+#     `accessibilityLabel`, which does reach it.
+#
+# So this asserts on the course names — which come from the fixture, not from
+# i18next — plus the labels added for exactly this purpose. The reasons are
+# translated, so the flow asserts that each row renders a reason without
+# asserting the reason's wording.
+
+- launchApp:
+    appId: 'org.reactjs.native.example.ham-rn'
+    stopApp: true
+- extendedWaitUntil:
+    visible: 'RNFetchCourseViewE2E'
+    timeout: 60000
+- tapOn: 'RNFetchCourseViewE2E'
+
+# The fixture drops 大学物理 (unreadable week string) and 体育 (no schedule at
+# all). Both must be listed; the two courses that parsed must not be.
+- extendedWaitUntil:
+    visible: '大学物理'
+    timeout: 60000
+- assertVisible: '体育'
+- assertNotVisible: '高等数学'
+- assertNotVisible: '线性代数'
+
+# Each row carries its own reason text, so a row that rendered a name but no
+# reason would still leave the reason label missing from the hierarchy.
+- assertVisible: 'ignoredCourse-大学物理'
+- assertVisible: 'ignoredCourse-体育'
+- assertVisible: 'ignoredCourseList'
+
+# Acknowledging dismisses the notice. Pressing it is what completes the import;
+# until then nothing has been reported to the host.
+- assertVisible: 'ignoredCourseAcknowledge'
+- tapOn: 'ignoredCourseAcknowledge'
+- extendedWaitUntil:
+    notVisible: 'ignoredCourseAcknowledge'
+    timeout: 30000

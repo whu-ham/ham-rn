@@ -31,10 +31,17 @@ const PrimaryButton = ({
   label,
   onPress,
   testID,
+  accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
   testID?: string;
+  /**
+   * RN's `testID` is invisible to Maestro on iOS — it does not reach the
+   * accessibility tree — so anything a flow must select needs a label. Kept
+   * optional because only the e2e flows have that requirement.
+   */
+  accessibilityLabel?: string;
 }): React.ReactElement => {
   const color = useColor();
   // Alpha-composite the tint over the surface it sits on, the way the renderer
@@ -53,6 +60,7 @@ const PrimaryButton = ({
   return (
     <TouchableOpacity
       testID={testID}
+      accessibilityLabel={accessibilityLabel}
       style={[styles.button, {backgroundColor: fill}]}
       onPress={onPress}>
       <Text

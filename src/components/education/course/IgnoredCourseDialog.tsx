@@ -73,12 +73,14 @@ const IgnoredCourseDialog = ({
         </Text>
 
         <ScrollView
+          accessibilityLabel="ignoredCourseList"
           testID={testID ? `${testID}-list` : undefined}
           style={styles.list}
           nestedScrollEnabled>
           {courses.map((course, index) => (
             <View
               key={`${course.courseId}-${index}`}
+              accessibilityLabel={`ignoredCourse-${course.name}`}
               testID={testID ? `${testID}-item-${index}` : undefined}
               style={styles.item}>
               <Text
@@ -103,6 +105,7 @@ const IgnoredCourseDialog = ({
 
         <View style={styles.buttonRow}>
           <PrimaryButton
+            accessibilityLabel="ignoredCourseAcknowledge"
             testID={testID ? `${testID}-confirm` : undefined}
             label={t('education.ignored_course_ok')}
             onPress={onAcknowledge}

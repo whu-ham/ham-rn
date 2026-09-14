@@ -98,21 +98,28 @@ workflows. If you ever switch the emulator to `arm64-v8a`, drop the override.
 
 ## Running
 
-CI runs only the scorecalc flow, on both platforms. See
-[What is worth testing](#what-is-worth-testing) for why smoke is excluded, and
+CI runs every flow in `.maestro/{ios,android}/` on both platforms:
+
+| Flow | What it covers |
+|---|---|
+| `scorecalc.yaml` | The only screen with real, stable content — the bundled script list. |
+| `ignored-course.yaml` | The course-import path, including the ignored-course notice. |
+| `smoke.yaml` | Each registered entry launches with the embedded bundle. |
+
+See [Testing the course flow](#testing-the-course-flow) for how the second one
+works without credentials, and
 [Known instability](#known-instability-across-repeated-runs) for what to expect
 if you run flows repeatedly by hand.
 
 ```bash
 # iOS (simulator must already be running, Release app already installed)
-maestro test .maestro/ios/scorecalc.yaml
+maestro test .maestro/ios/
 
 # Android (emulator must already be running, release APK already installed)
-maestro test .maestro/android/scorecalc.yaml
+maestro test .maestro/android/
 
-# The whole directory, if you want the smoke flows too (expect smoke to fail —
-# see "Why there is no 'every screen boots' smoke flow")
-maestro test .maestro/ios/
+# A single flow
+maestro test .maestro/ios/ignored-course.yaml
 ```
 
 Pass `--device <udid>` to target a specific simulator; without it Maestro picks
@@ -199,27 +206,55 @@ on it working. (CI no longer runs this step at all.)
 
 | Screen | Worth an e2e flow? | Why |
 |---|---|---|
-| `RNScoreCalcView` | **Yes** | The only screen with real UI: script list, select/upgrade buttons, and the developer debug card. Its two script titles are hardcoded Chinese, so the assertions hold regardless of locale. This is the only flow CI runs. |
+| `RNScoreCalcView` | **Yes** | The only screen with real UI: script list, select/upgrade buttons, and the developer debug card. Its two script titles are hardcoded Chinese, so the assertions hold regardless of locale. |
+| `RNFetchCourseViewE2E` | **Yes** | Drives the course-import path with a canned payload, including the ignored-course notice. See [Testing the course flow](#testing-the-course-flow). |
 | `RNCasMobileLoginView` | Partially | Loads `cas.whu.edu.cn` in a WebView. Without test credentials you can only assert that the WebView loads, not that login works. |
-| `RNFetchCourseView` | No | Renders a spinner, then calls back into native. There is no UI to assert beyond "it did not crash" — and see the note below about why even that does not work. |
-| `RNFetchScoreView` | No | Same as above. |
+| `RNFetchCourseView` | No | Renders a spinner, then calls back into native. There is no UI to assert beyond "it did not crash". Its e2e-named sibling covers the behaviour. |
+| `RNFetchScoreView` | No | Renders a spinner, then calls back into native. |
 | `RNCommon` | No | Renders an empty `<View />`; it only logs and subscribes to native events. |
 
-### Why there is no "every screen boots" smoke flow
+### Testing the course flow
 
-`smoke.yaml` exists on both platforms but is **not** wired into CI, and cannot
-be until the debug shell changes.
+The flows have no credentials for `cas.whu.edu.cn` and cannot fabricate a CAS
+session, so they cannot drive the real fetch. They also cannot intercept XHR —
+Maestro has no network stubbing — so the fixture has to live inside the bundle.
 
-It taps into each registered screen, presses back, and asserts the shell's list
-is still there. That assertion fails: after pushing any RN screen and going
-back, the native list renders empty. This was reproduced with `RNCommon` alone,
-which makes no network calls at all, so it is not a network or login problem —
-the RN container does not come back cleanly after being popped.
+`RNFetchCourseViewE2E` (registered in `index.js`, reachable from both debug
+shells) installs `src/e2e/courseFixture.ts`, which patches `global.fetch` to
+answer just two URLs and delegates everything else to the original. Every other
+step is production code: real `loginEducation`, real `getCourseList`, real
+`parseResponse` and `toNativeCoursePairing`, real notice. The fixture's payload
+uses the education system's own shapes, including a week string the parser
+cannot read (`全周`) and a course with no schedule at all — the two cases the
+notice exists for.
 
-If you run the flows by hand and want the smoke check anyway, run it on its own
-after a clean install, and expect it to fail on the shell-survives assertion.
-Fixing it means changing how the shell hosts RN screens, which is out of scope
-for the e2e setup.
+Two rules for assertions in these flows, both verified rather than assumed:
+
+- **Never select by `testID`.** RN's `testID` does not reach iOS's accessibility
+  tree, so Maestro cannot see it. Anything a flow must select needs an
+  `accessibilityLabel`; the dialog and its button carry them for this reason.
+- **Never assert i18next copy.** The language comes from
+  `NativeCommonModule.getLocale()`, which reads the device locale and ignores
+  `defaults write -g AppleLanguages`. The flows assert on course names, which
+  come from the fixture, not from a translation.
+
+`__tests__/e2e/courseFixture.test.ts` pins the fixture's shape, because a
+fixture that stopped producing ignored courses would leave the flow asserting
+nothing while still passing.
+
+### Why smoke does not navigate back
+
+`smoke.yaml` used to tap into each registered screen, press back, and assert the
+shell's list was still there. That assertion failed, and the flow could not go
+in CI: after pushing any RN screen and going back, the native list renders
+empty. This was reproduced with `RNCommon` alone, which makes no network calls
+at all, so it is not a network or login problem — the RN container does not come
+back cleanly after being popped.
+
+So the flow reaches each screen with a fresh `launchApp` instead of navigating
+back. That keeps the actual check — the entry boots with the embedded bundle —
+without depending on a shell behaviour that is broken. Fixing the shell is the
+real fix, and is still outstanding.
 
 Deep behavioural coverage belongs in the Jest suite (`pnpm test`), which can
 mock the native modules — e2e cannot. Use e2e for "the bundle boots and the

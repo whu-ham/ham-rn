@@ -121,6 +121,20 @@ describe('PrimaryButton', () => {
     expect(contrast).toBeGreaterThanOrEqual(4.5);
   });
 
+  it('forwards an accessibilityLabel when given one', async () => {
+    // RN's testID does not reach iOS's accessibility tree, so Maestro cannot
+    // select by it; the e2e flows depend on this prop instead.
+    await render(
+      <PrimaryButton
+        testID="e2e-button"
+        accessibilityLabel="ignoredCourseAcknowledge"
+        label="好的"
+        onPress={jest.fn()}
+      />,
+    );
+    expect(screen.getByLabelText('ignoredCourseAcknowledge')).toBeTruthy();
+  });
+
   it('omits testIDs entirely when no testID prop is given', async () => {
     await render(<PrimaryButton label="好的" onPress={jest.fn()} />);
     expect(screen.queryByTestId('primary')).toBeNull();

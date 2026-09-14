@@ -1,9 +1,9 @@
 import {AppRegistry} from 'react-native';
 
 /**
- * `index.js` is the host app's entry point: it registers five RN components
- * and one callable module. A rename or a deleted file would only surface at
- * runtime inside ham-ios / ham-android, so assert the registrations here.
+ * `index.js` is the host app's entry point: it registers the RN components and
+ * one callable module. A rename or a deleted file would only surface at runtime
+ * inside ham-ios / ham-android, so assert the registrations here.
  *
  * The module is imported lazily inside each test because `index.js` calls
  * `AppRegistry.registerComponent` at import time.
@@ -14,6 +14,10 @@ const EXPECTED_COMPONENTS = [
   'RNFetchCourseView',
   'RNFetchScoreView',
   'RNScoreCalcView',
+  // Present in every build, including Release: an AppRegistry entry is inert
+  // until a native container asks for it, and the e2e flows run against the
+  // Release app.
+  'RNFetchCourseViewE2E',
 ];
 
 describe('app entry registrations', () => {

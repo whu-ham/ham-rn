@@ -82,6 +82,14 @@ private fun HomeView() {
                                 Text("RNCommon")
                             }
                         }
+
+                        item {
+                            TextButton(onClick = {
+                                navController.navigate("RNFetchCourseViewE2E")
+                            }) {
+                                Text("RNFetchCourseViewE2E")
+                            }
+                        }
                     }
                 }
                 composable("RNCasMobileLogin") {
@@ -98,6 +106,9 @@ private fun HomeView() {
                 }
                 composable("RNCommon") {
                     RNCommon()
+                }
+                composable("RNFetchCourseViewE2E") {
+                    RNContainer("RNFetchCourseViewE2E")
                 }
             }
         }

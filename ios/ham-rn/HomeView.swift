@@ -23,6 +23,8 @@ struct HomeView: View {
         RNDemoItem(title: "RNFetchScoreView", moduleName: "RNFetchScoreView"),
         RNDemoItem(title: "RNScoreCalcView", moduleName: "RNScoreCalcView"),
         RNDemoItem(title: "RNCommon", moduleName: "RNCommon"),
+        RNDemoItem(
+            title: "RNFetchCourseViewE2E", moduleName: "RNFetchCourseViewE2E"),
     ]
 
     var body: some View {
