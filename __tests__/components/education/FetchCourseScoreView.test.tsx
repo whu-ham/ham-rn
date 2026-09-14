@@ -1,5 +1,10 @@
 import React from 'react';
-import {render, screen, waitFor} from '@testing-library/react-native';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
 import FetchCourseView from '@/components/education/course/FetchCourseView';
 import FetchScoreView from '@/components/education/score/FetchScoreView';
 import {getCourseList} from '@/business/education/course';
@@ -163,6 +168,172 @@ describe('FetchCourseView', () => {
         null,
       ),
     );
+  });
+});
+
+/**
+ * A timetable parsed with holes must not reach the host app until the user has
+ * seen what was dropped and accepted it.
+ */
+describe('FetchCourseView ignored-course confirmation', () => {
+  const course = (name: string) => ({name, courseId: `id-${name}`});
+  const grid = (week: number) => [
+    {week, weekday: 1, classFrom: 1, classTo: 2, color: '#fff'},
+  ];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    courseConfig(2026, 1);
+  });
+
+  const renderWith = async (
+    map: Map<Record<string, unknown>, Array<Record<string, unknown>>>,
+  ) => {
+    (getCourseList as jest.Mock).mockResolvedValue([map, {studentId: ''}]);
+    return await render(<FetchCourseView />);
+  };
+
+  it('imports straight away when nothing was ignored', async () => {
+    await renderWith(new Map([[course('A'), grid(1)]]));
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+        [course('A')],
+        [grid(1)],
+        null,
+      ),
+    );
+    expect(screen.queryByTestId('fetch-course-view-ignored')).toBeNull();
+  });
+
+  it('holds back the import and shows the dialog when courses were ignored', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    expect(EducationModule.onGetCourseList).not.toHaveBeenCalled();
+  });
+
+  it('lists every ignored course by name', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+        [course('C'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId('fetch-course-view-ignored-item-name-0'),
+    ).toHaveTextContent('B');
+    expect(
+      screen.getByTestId('fetch-course-view-ignored-item-name-1'),
+    ).toHaveTextContent('C');
+    expect(screen.queryByTestId('fetch-course-view-ignored-item-2')).toBeNull();
+  });
+
+  it('imports the parsed courses once the user confirms', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+        [course('A')],
+        [grid(1)],
+        null,
+      ),
+    );
+  });
+
+  it('dismisses the dialog after confirming', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+    await waitFor(() =>
+      expect(screen.queryByTestId('fetch-course-view-ignored')).toBeNull(),
+    );
+  });
+
+  it('imports nothing when the user cancels', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-cancel'),
+    );
+
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+        [],
+        [],
+        zh.education.import_cancelled,
+      ),
+    );
+    expect(EducationModule.onGetCourseList).toHaveBeenCalledTimes(1);
+  });
+
+  it('dismisses the dialog after cancelling', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-cancel'),
+    );
+    await waitFor(() =>
+      expect(screen.queryByTestId('fetch-course-view-ignored')).toBeNull(),
+    );
+  });
+
+  it('does not re-run the fetch behind the dialog', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    expect(getCourseList).toHaveBeenCalledTimes(1);
   });
 });
 

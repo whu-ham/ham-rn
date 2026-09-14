@@ -20,11 +20,17 @@
   },
   "education": {
     "course_fetch_failed_with_reason": "Failed to fetch courses! {{reason}}",
+    "ignored_course_cancel": "Not now",
+    "ignored_course_import": "Import anyway",
+    "ignored_course_summary": "{{count}} course(s) could not be scheduled; they will be missing from the imported timetable.",
+    "ignored_course_title": "Some courses could not be imported",
+    "import_cancelled": "Import cancelled",
     "loading": "Loading",
     "login_failed_full": "Education system login failed! {{reason}}",
     "login_failed_reason": "Try re-logging in via \"Me -> Portal Login\".",
     "score_fetch_failed_with_reason": "Failed to fetch scores! {{reason}}",
-    "semester_not_set": "Semester start date not set"
+    "semester_not_set": "Semester start date not set",
+    "unnamed_course": "Untitled course"
   },
   "scorecalc": {
     "current": {

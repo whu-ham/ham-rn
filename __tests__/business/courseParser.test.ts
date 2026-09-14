@@ -297,11 +297,14 @@ describe('toNativeCoursePairing', () => {
       [entity('A'), []],
       [entity('B'), []],
     ]);
-    expect(toNativeCoursePairing(map)).toEqual([[], []]);
+    const [courses, grids, ignored] = toNativeCoursePairing(map);
+    expect(courses).toEqual([]);
+    expect(grids).toEqual([]);
+    expect(ignored.map(c => c.name)).toEqual(['A', 'B']);
   });
 
   it('handles an empty map', () => {
-    expect(toNativeCoursePairing(new Map())).toEqual([[], []]);
+    expect(toNativeCoursePairing(new Map())).toEqual([[], [], []]);
   });
 
   it('drops unparsable courses from a mixed payload', () => {
@@ -316,6 +319,30 @@ describe('toNativeCoursePairing', () => {
     expect(courses.map(c => c.name)).toEqual(['A', 'C', 'E']);
     expect(courses).toHaveLength(grids.length);
     expect(grids.some(g => g.length === 0)).toBe(false);
+  });
+
+  it('reports the courses it dropped, in source order', () => {
+    const map = new Map<CourseEntity, CourseGridEntity[]>([
+      [entity('A'), [grid(1)]],
+      [entity('B'), []],
+      [entity('C'), []],
+      [entity('D'), [grid(2)]],
+    ]);
+    const [, , ignored] = toNativeCoursePairing(map);
+    expect(ignored.map(c => c.name)).toEqual(['B', 'C']);
+  });
+
+  it('reports nothing ignored when every course parsed', () => {
+    const map = new Map<CourseEntity, CourseGridEntity[]>([
+      [entity('A'), [grid(1)]],
+      [entity('B'), [grid(2)]],
+    ]);
+    const [, , ignored] = toNativeCoursePairing(map);
+    expect(ignored).toEqual([]);
+  });
+
+  it('handles an empty map without reporting anything ignored', () => {
+    expect(toNativeCoursePairing(new Map())).toEqual([[], [], []]);
   });
 });
 
