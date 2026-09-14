@@ -10,6 +10,7 @@ import FetchScoreView from '@/components/education/score/FetchScoreView';
 import {getCourseList} from '@/business/education/course';
 import {getScoreList, getUserInfo} from '@/business/education/score/api';
 import {loginEducation} from '@/business/education';
+import {CasReAuthLoginError} from '@/business/education/api';
 import EducationModule from '@/modules/NativeEducationModule';
 import zh from '@/i18n/zh/translation.json';
 
@@ -377,6 +378,86 @@ describe('FetchCourseView ignored-course notice', () => {
       screen.getByTestId('fetch-course-view-ignored-summary'),
     ).toHaveTextContent(
       zh.education.ignored_course_summary_all_failed.replace('{{count}}', '2'),
+    );
+  });
+
+  it('completes the import after the re-auth flow runs a second fetch', async () => {
+    // The first attempt fails with a CAS error from the fetch itself, the
+    // WebView completes, and doFetch runs again. This is the path a stale
+    // session takes, and it has to end in a successful callback.
+    let attempts = 0;
+    (getCourseList as jest.Mock).mockImplementation(() => {
+      attempts += 1;
+      if (attempts === 1) {
+        return Promise.reject(
+          new CasReAuthLoginError('https://cas.example/reauth'),
+        );
+      }
+      return Promise.resolve([
+        new Map([[course('A'), grid(1)]]),
+        {studentId: ''},
+      ]);
+    });
+
+    await render(<FetchCourseView />);
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-reauth')).toBeTruthy(),
+    );
+
+    global.fetch = jest.fn(() => Promise.resolve(new Response())) as never;
+    screen
+      .getByTestId('fetch-course-view-reauth')
+      .props.onShouldStartLoadWithRequest({
+        url: 'https://cas.example/?ticket=ST-1',
+      });
+
+    await waitFor(() => expect(getCourseList).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalled(),
+    );
+  });
+
+  it('shows the notice when the re-auth fetch also has ignored courses', async () => {
+    let attempts = 0;
+    (getCourseList as jest.Mock).mockImplementation(() => {
+      attempts += 1;
+      if (attempts === 1) {
+        return Promise.reject(
+          new CasReAuthLoginError('https://cas.example/reauth'),
+        );
+      }
+      return Promise.resolve([
+        new Map([
+          [course('A'), grid(1)],
+          [course('B'), []],
+        ]),
+        {studentId: ''},
+      ]);
+    });
+
+    await render(<FetchCourseView />);
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-reauth')).toBeTruthy(),
+    );
+    global.fetch = jest.fn(() => Promise.resolve(new Response())) as never;
+    screen
+      .getByTestId('fetch-course-view-reauth')
+      .props.onShouldStartLoadWithRequest({
+        url: 'https://cas.example/?ticket=ST-1',
+      });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+        [course('A')],
+        [grid(1)],
+        null,
+      ),
     );
   });
 
