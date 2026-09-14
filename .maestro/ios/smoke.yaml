@@ -1,0 +1,30 @@
+appId: org.reactjs.native.example.ham-rn
+name: Every registered screen boots inside the native container
+tags:
+  - smoke
+---
+# Verifies each AppRegistry entry loads without crashing. These screens have
+# almost no UI to assert — RNCommon renders an empty View, and the two fetch
+# screens show a spinner before calling back into native — so this is a
+# crash check, not a behaviour check. See docs/e2e.md.
+#
+# The probe is "tap in, come back, shell still there". We deliberately do not
+# assert on 'Loading': it is an i18next string, and the app's language comes
+# from NativeCommonModule.getLocale() (device locale), so it flakes on any
+# device that is not set to English.
+- launchApp
+- assertVisible: 'RNScoreCalcView'
+
+# Loading screens: push in, then pop back out.
+- tapOn: 'RNFetchCourseView'
+- back
+- assertVisible: 'RNScoreCalcView'
+
+- tapOn: 'RNFetchScoreView'
+- back
+- assertVisible: 'RNScoreCalcView'
+
+# RNCommon renders nothing visible; only assert the shell survived the push.
+- tapOn: 'RNCommon'
+- back
+- assertVisible: 'RNScoreCalcView'

@@ -10,12 +10,15 @@ import {useWebViewStyle} from '@/components/cas/style';
 const ReAuthLoginView = ({
   reAuthUrl,
   onGetTicketUrl,
+  testID,
 }: {
   reAuthUrl: string;
   onGetTicketUrl: (ticketUrl: string) => void;
+  testID?: string;
 }): React.ReactElement => {
   return (
     <WebView
+      testID={testID}
       source={{uri: reAuthUrl}}
       style={useWebViewStyle()}
       webviewDebuggingEnabled={false}

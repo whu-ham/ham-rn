@@ -70,6 +70,27 @@ pnpm android
 pnpm lint
 ```
 
+### Testing
+
+```bash
+pnpm test
+```
+
+Runs the Jest suite with [React Native Testing Library](https://callstack.github.io/react-native-testing-library/).
+`pnpm test` runs `pnpm embed` first, which generates the embedded
+score-calculator scripts that the tests import.
+
+Two things to know when adding tests:
+
+- **Every `render` / `fireEvent` / `renderHook` call must be awaited.** They
+  are async in RNTL v14. Without the `await`, `render` returns an empty
+  object and the global `screen` throws
+  "`render` function has not been called".
+- **Assert on `testID`s, not on rendered text.** User-facing strings come
+  from i18next and differ across `zh` / `en` / `ja`, so text assertions
+  break whenever copy changes. Components take an optional `testID` prop for
+  this; see `jest.setup.ts` for the globally stubbed native modules.
+
 ## Project Structure
 
 ```
@@ -96,6 +117,7 @@ See the `shell/` directory for deployment scripts. Hot updates are managed via `
 GitHub Actions workflows run on PRs to `main` and pushes to `main`:
 
 - **Lint** – ESLint check
+- **Test** – Jest suite
 - **Compile Check** – TypeScript type checking
 - **Android Build** – Debug APK build verification
 - **iOS Build** – Debug build verification

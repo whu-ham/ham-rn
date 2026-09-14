@@ -1,0 +1,243 @@
+name: E2E
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+# Include github.job: ios and android are separate jobs in this workflow, and
+# without it they share one concurrency group, so whichever starts second
+# cancels the first (both jobs end up "cancelled" before Maestro ever runs).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.job }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  HUSKY: '0'
+  # iOS runs on macOS (the simulator needs Xcode); Android runs on Linux,
+  # where /dev/kvm gives the emulator hardware acceleration. See the android
+  # job below.
+  MAESTRO_VERSION: '2.10.0'
+
+jobs:
+  # Both jobs run once per PR and both gate the merge. They were non-blocking
+  # at first, because repeated cold launches of an RN app degraded the local
+  # simulator across runs (measured 5/5 steps, then 2/5, 3/5, 0/5; a single
+  # run after a cooldown passed 5/5 again). On CI each job runs exactly once on
+  # a fresh runner, which is the "settled device" case, and both pass reliably
+  # (iOS ~16m, Android ~9m). So the flake that motivated non-blocking does not
+  # apply here, and keeping it would mean a real regression (building Debug
+  # instead of Release) would only show as a red X nobody has to act on. If
+  # flakiness appears, revisit this decision rather than silently re-adding
+  # continue-on-error. See docs/e2e.md.
+
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CocoaPods
+        run: gem install cocoapods -v 1.16.2 --no-document
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          # Deliberately no `restore-keys`: see the note in ios-build.yml.
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock', 'node_modules/react-native/sdks/hermes-engine/version.properties', 'node_modules/react-native/package.json') }}
+      - name: Install CocoaPods dependencies
+        working-directory: ios
+        run: pod _1.16.2_ install --no-repo-update
+
+      - name: Embed scripts
+        run: pnpm embed
+
+      # The simulator is created and booted up front so the build below has a
+      # destination, and so Maestro attaches to a warm device. The bundle id
+      # comes from ios/ham-rn.xcodeproj: PRODUCT_BUNDLE_IDENTIFIER is
+      # org.reactjs.native.example.$(PRODUCT_NAME) and PRODUCT_NAME is ham-rn.
+      - name: Boot simulator
+        id: simulator
+        uses: futureware-tech/simulator-action@v4
+        with:
+          model: 'iPhone 16'
+
+      # Release, not Debug. In Debug + Simulator, react-native-xcode.sh skips
+      # bundling ("since the packager bundles for you" — scripts/
+      # react-native-xcode.sh:41), and AppDelegate.mm's #if DEBUG branch then
+      # points at jsBundleURLForBundleRoot, i.e. a Metro server. Without one
+      # running, no RN content ever renders and every flow times out. Release
+      # embeds main.jsbundle in the app and needs no packager.
+      - name: Build for simulator
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -workspace ham-rn.xcworkspace \
+            -scheme ham-rn \
+            -sdk iphonesimulator \
+            -configuration Release \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -derivedDataPath build/e2e \
+            build \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      # `xcodebuild build` only produces a .app — it does not install it, and
+      # simulator-action only boots the device. Without this step Maestro's
+      # launchApp fails with FBSOpenApplicationServiceErrorDomain code=4
+      # ("Simulator device failed to launch <bundle id>"), which reads like a
+      # launch problem when the app was never installed.
+      - name: Install app on simulator
+        run: |
+          xcrun simctl install \
+            "${{ steps.simulator.outputs.udid }}" \
+            "ios/build/e2e/Build/Products/Release-iphonesimulator/ham-rn.app"
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      # Only the scorecalc flow, not the whole directory. That flow is the one
+      # with real UI to assert on (see docs/e2e.md "What is worth testing"),
+      # and it is verified to pass against this Release build.
+      #
+      # smoke.yaml is deliberately excluded: it taps into each RN screen and
+      # asserts the shell survives the way back out, but the shell does NOT
+      # survive — after pushing any RN screen and pressing back, the native
+      # list renders empty (reproduced with RNCommon, which makes no network
+      # calls at all, so it is not a network problem). Fixing that is a change
+      # to the debug shell, not to this workflow; until then the flow cannot go
+      # in CI. Recorded in docs/e2e.md.
+      - name: Run iOS flows
+        run: |
+          maestro test --device "${{ steps.simulator.outputs.udid }}" \
+            .maestro/ios/scorecalc.yaml
+
+      - name: Upload Maestro artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ios-results
+          retention-days: 7
+          path: ~/.maestro/tests/
+          if-no-files-found: ignore
+
+  android:
+    # Linux, not macOS. GitHub's ubuntu runners expose /dev/kvm, so the
+    # emulator gets hardware acceleration; macOS runners have none, and the
+    # same emulator falls back to software rendering and Maestro times out
+    # waiting for the app. The KVM step below is what makes the device
+    # usable — without it the runner user cannot open /dev/kvm.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Grant the runner user access to /dev/kvm so the emulator can use
+      # hardware acceleration. Must run before the emulator starts.
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Embed scripts
+        run: pnpm embed
+
+      # Release, not Debug. The RN Gradle plugin skips bundling for
+      # debuggableVariants (default: debug), so a debug APK has no JS of its
+      # own and RNContainer.kt runs with useDevSupport = BuildConfig.DEBUG,
+      # i.e. it looks for a Metro server that is not running.
+      # app/build.gradle.kts already signs release with the checked-in debug
+      # keystore, so no extra secrets are needed.
+      #
+      # -PreactNativeArchitectures overrides android/gradle.properties, which
+      # builds arm64-v8a only. The emulator below is x86_64, and an arm64-only
+      # APK installed on it crashes on launch with SoLoaderDSONotFoundError for
+      # libreactnative.so — the app dies in MainApplication.onCreate and every
+      # assertion then times out, which looks like a flow problem rather than an
+      # ABI mismatch. Overriding here rather than editing gradle.properties
+      # keeps the arm64 default intact for the other Android workflows.
+      - name: Build Android Release
+        working-directory: android
+        env:
+          GRADLE_OPTS: -Xmx4096m
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      # The action installs the SDK, starts the emulator, and runs the script
+      # against it. API 30 is the oldest image with reliable hardware
+      # acceleration on these runners.
+      - name: Run Android flows
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4
+          avd-name: e2e
+          # Disable animations: Maestro's default settle wait is far too short
+          # for an RN bundle launch on a cold emulator, and animating
+          # transitions keep the hierarchy "unsettled" long past it.
+          disable-animations: true
+          script: |
+            adb logcat -c
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            maestro test .maestro/android/scorecalc.yaml
+
+      # No separate logcat step: Maestro already writes device-logcat.txt and
+      # crash-report.txt into ~/.maestro/tests/, which this step uploads. An
+      # `adb logcat` out here would also hang — it runs after the action has
+      # shut the emulator down, so there is no device for adb to attach to.
+      - name: Upload Maestro artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-android-results
+          retention-days: 7
+          path: ~/.maestro/tests/
+          if-no-files-found: ignore

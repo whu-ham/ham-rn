@@ -84,6 +84,7 @@ const ScoreCalcViewContent = ({paddingTop}: {paddingTop: number}) => {
   };
   return (
     <ScrollView
+      testID="scorecalc-scroll-view"
       style={{
         backgroundColor: color.ham_bg_b1,
         ...styles.container,
@@ -91,6 +92,7 @@ const ScoreCalcViewContent = ({paddingTop}: {paddingTop: number}) => {
       <View style={{paddingTop}} />
       <View style={styles.topPadding} />
       <ScoreCalcViewCurrentCard
+        testID="scorecalc-current-card"
         color={color}
         item={currentItem}
         listItem={calcList.find(
@@ -99,9 +101,10 @@ const ScoreCalcViewContent = ({paddingTop}: {paddingTop: number}) => {
         onSetItem={() => updateCurrentItem()}
       />
       <View style={styles.itemPadding} />
-      <ScoreCalcViewDocsCard color={color} />
+      <ScoreCalcViewDocsCard testID="scorecalc-docs-card" color={color} />
       <View style={styles.itemPadding} />
       <ScoreCalcViewOtherCard
+        testID="scorecalc-other-card"
         color={color}
         currentItem={currentItem}
         onSetItem={() => updateCurrentItem()}

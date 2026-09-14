@@ -23,6 +23,7 @@ interface FetchEducationViewProps {
   doLoginAndFetch: () => Promise<void>;
   doFetch: () => Promise<void>;
   onError: (message: string) => void;
+  testID?: string;
 }
 
 const FetchEducationView = ({
@@ -30,6 +31,7 @@ const FetchEducationView = ({
   doLoginAndFetch,
   doFetch,
   onError,
+  testID,
 }: FetchEducationViewProps): React.ReactElement => {
   const {t} = useTranslation();
   const [reAuthUrl, setReAuthUrl] = useState('');
@@ -53,6 +55,7 @@ const FetchEducationView = ({
   if (stage === EducationStage.REAUTH_LOGIN) {
     return (
       <ReAuthLoginView
+        testID={testID ? `${testID}-reauth` : undefined}
         reAuthUrl={reAuthUrl}
         onGetTicketUrl={ticketUrl => {
           fetch(ticketUrl)
@@ -72,10 +75,16 @@ const FetchEducationView = ({
   }
 
   return (
-    <View style={containerStyle}>
-      <View style={loadingContainerStyle}>
+    <View style={containerStyle} testID={testID}>
+      <View
+        style={loadingContainerStyle}
+        testID={testID ? `${testID}-loading` : undefined}>
         <ActivityIndicator size={'large'} />
-        <Text style={loadingTextStyle}>{t('education.loading')}</Text>
+        <Text
+          style={loadingTextStyle}
+          testID={testID ? `${testID}-loading-text` : undefined}>
+          {t('education.loading')}
+        </Text>
       </View>
     </View>
   );

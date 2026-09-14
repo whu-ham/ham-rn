@@ -21,6 +21,7 @@ interface ScoreCalcViewCurrentCardParams {
   item: ScoreCalcItem | undefined;
   listItem: ScoreCalcItem | undefined;
   onSetItem: () => void;
+  testID?: string;
 }
 
 const JSIcon = ({color}: {color: ThemeColor}) => {
@@ -45,6 +46,7 @@ const ScoreCalcViewCurrentCard = ({
   item,
   listItem,
   onSetItem,
+  testID,
 }: ScoreCalcViewCurrentCardParams): React.ReactElement => {
   const {t} = useTranslation();
   const doUpdate = async () => {
@@ -66,9 +68,10 @@ const ScoreCalcViewCurrentCard = ({
 
   const canUpdate = listItem && listItem.version !== item?.version;
   return (
-    <Card>
+    <Card testID={testID}>
       <View>
         <Text
+          testID={testID ? `${testID}-title` : undefined}
           style={[
             {
               color: color.ham_text_primary,
@@ -78,16 +81,18 @@ const ScoreCalcViewCurrentCard = ({
           {t('scorecalc.current.title')}
         </Text>
         {item ? (
-          <View>
+          <View testID={testID ? `${testID}-content` : undefined}>
             <View style={styles.container}>
               <JSIcon color={color} />
               <ScoreCalcViewDescCell
+                testID={testID ? `${testID}-desc` : undefined}
                 style={styles.descCell}
                 item={item}
                 listItem={listItem}
               />
               {canUpdate ? (
                 <TouchableOpacity
+                  testID={testID ? `${testID}-update-button` : undefined}
                   style={styles.selectButtonContainer}
                   onPress={() => doUpdate()}>
                   <View
@@ -108,7 +113,9 @@ const ScoreCalcViewCurrentCard = ({
                   </View>
                 </TouchableOpacity>
               ) : (
-                <View style={styles.operationIcon}>
+                <View
+                  testID={testID ? `${testID}-latest` : undefined}
+                  style={styles.operationIcon}>
                   <Text
                     style={[
                       {
@@ -123,7 +130,7 @@ const ScoreCalcViewCurrentCard = ({
             </View>
           </View>
         ) : (
-          <View>
+          <View testID={testID ? `${testID}-empty` : undefined}>
             <Text style={{color: color.ham_text_secondary}}>
               {t('scorecalc.current.none')}
             </Text>

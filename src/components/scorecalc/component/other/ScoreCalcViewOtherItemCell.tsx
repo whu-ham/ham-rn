@@ -25,6 +25,7 @@ interface ScoreCalcViewOtherItemCellParams {
   currentItem: ScoreCalcItem | undefined;
   goToDetail: () => void;
   onSelect: () => void;
+  testID?: string;
 }
 
 const ScoreCalcViewOtherItemCell = ({
@@ -33,12 +34,15 @@ const ScoreCalcViewOtherItemCell = ({
   currentItem,
   goToDetail,
   onSelect,
+  testID,
 }: ScoreCalcViewOtherItemCellParams): React.ReactElement => {
   const {t} = useTranslation();
   const isCurrentItem =
     currentItem?.title === item.title && currentItem?.url === item.url;
   return (
-    <TouchableWithoutFeedback onPress={goToDetail}>
+    <TouchableWithoutFeedback
+      testID={testID ? `${testID}-row` : undefined}
+      onPress={goToDetail}>
       <View style={styles.container}>
         <View
           style={[
@@ -55,6 +59,7 @@ const ScoreCalcViewOtherItemCell = ({
 
         <View style={styles.textContainer}>
           <Text
+            testID={testID ? `${testID}-title` : undefined}
             style={[
               {
                 color: color.ham_text_primary,
@@ -67,6 +72,7 @@ const ScoreCalcViewOtherItemCell = ({
           <View style={styles.briefContainer}>
             {item.type === 'GITHUB' ? (
               <Image
+                testID={testID ? `${testID}-github-icon` : undefined}
                 source={
                   Appearance.getColorScheme() === 'dark'
                     ? require('@/resources/images/github_light.png')
@@ -79,6 +85,7 @@ const ScoreCalcViewOtherItemCell = ({
             )}
 
             <Text
+              testID={testID ? `${testID}-brief` : undefined}
               style={[{color: color.ham_text_secondary}, styles.brief]}
               numberOfLines={1}>
               {item.brief}
@@ -88,6 +95,7 @@ const ScoreCalcViewOtherItemCell = ({
 
         {isCurrentItem && currentItem?.version === item.version ? (
           <Text
+            testID={testID ? `${testID}-current` : undefined}
             style={{
               color: color.ham_text_secondary,
             }}>
@@ -95,6 +103,7 @@ const ScoreCalcViewOtherItemCell = ({
           </Text>
         ) : (
           <TouchableOpacity
+            testID={testID ? `${testID}-select` : undefined}
             style={styles.selectButtonContainer}
             onPress={onSelect}>
             <View
@@ -105,6 +114,7 @@ const ScoreCalcViewOtherItemCell = ({
                 styles.selectButton,
               ]}>
               <Text
+                testID={testID ? `${testID}-select-text` : undefined}
                 style={{
                   color: color.ham_blue,
                 }}>

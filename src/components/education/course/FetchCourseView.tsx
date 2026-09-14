@@ -18,6 +18,7 @@ import FetchEducationView from '@/components/education/FetchEducationView';
 const FetchCourseView = (): React.ReactElement => {
   return (
     <FetchEducationView
+      testID="fetch-course-view"
       tag="FetchCourseView"
       doLoginAndFetch={doLoginAndGetCourseList}
       doFetch={doGetCourseList}

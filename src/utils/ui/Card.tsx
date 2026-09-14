@@ -11,13 +11,16 @@ import {useColor} from '../color/color';
 const Card = ({
   children,
   padding = 16,
+  testID,
 }: {
   children: React.ReactElement;
   padding?: DimensionValue;
+  testID?: string;
 }): React.ReactElement => {
   const color = useColor();
   return (
     <View
+      testID={testID}
       style={{
         backgroundColor: color.ham_bg_b2,
         padding: padding,

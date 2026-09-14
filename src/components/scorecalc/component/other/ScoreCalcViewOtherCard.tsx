@@ -21,6 +21,7 @@ interface ScoreCalcViewOtherCardParams {
   calcList: Array<ScoreCalcItem>;
   currentItem: ScoreCalcItem | undefined;
   onSetItem: () => void;
+  testID?: string;
 }
 
 const ScoreCalcViewOtherCard = ({
@@ -28,12 +29,14 @@ const ScoreCalcViewOtherCard = ({
   calcList,
   currentItem,
   onSetItem,
+  testID,
 }: ScoreCalcViewOtherCardParams): React.ReactElement => {
   const {t} = useTranslation();
   return (
-    <Card>
+    <Card testID={testID}>
       <View>
         <Text
+          testID={testID ? `${testID}-title` : undefined}
           style={[
             {
               color: color.ham_text_primary,
@@ -45,6 +48,7 @@ const ScoreCalcViewOtherCard = ({
         {calcList.map((item, index) => (
           <View key={item.title + item.url + index}>
             <ScoreCalcViewOtherItemCell
+              testID={testID ? `${testID}-item-${index}` : undefined}
               item={item}
               color={color}
               currentItem={currentItem}
@@ -68,6 +72,7 @@ const ScoreCalcViewOtherCard = ({
             />
             {calcList.length - 1 !== index && (
               <View
+                testID={testID ? `${testID}-divider-${index}` : undefined}
                 style={[
                   {
                     backgroundColor: Color(color.ham_gray).alpha(0.2).hexa(),
@@ -79,7 +84,9 @@ const ScoreCalcViewOtherCard = ({
           </View>
         ))}
         {calcList.length === 0 && (
-          <Text style={{color: color.ham_text_secondary}}>
+          <Text
+            testID={testID ? `${testID}-empty` : undefined}
+            style={{color: color.ham_text_secondary}}>
             {t('scorecalc.other.empty')}
           </Text>
         )}

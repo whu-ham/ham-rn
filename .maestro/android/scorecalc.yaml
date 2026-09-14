@@ -1,0 +1,38 @@
+appId: com.nowcent.ham.rndebug
+name: ScoreCalcView renders the bundled script list
+tags:
+  - smoke
+---
+# Drives the debug shell into RNScoreCalcView and asserts the screen rendered.
+#
+# Locale note, and it matters: the two anchors below are the only ones safe to
+# assert on.
+#
+#   - The shell's navigation labels (RNScoreCalcView) are hardcoded English in
+#     android/.../HomeActivity.kt, so they never change.
+#   - The script titles are hardcoded Chinese in
+#     src/business/education/scorecalc/fetch.ts, so they never change either.
+#
+# Everything else on this screen goes through i18next, whose language comes
+# from NativeCommonModule.getLocale() — a native module reading the device
+# locale, so it varies per device. Any translated string here would be a flake.
+#
+# Wait note: `assertVisible` takes only a selector — there is no `timeout`
+# property — and retries for a fixed ~7s, too short for a cold RN bundle launch
+# on an emulator. Use `extendedWaitUntil` for anything that has to wait.
+- launchApp:
+    appId: 'com.nowcent.ham.rndebug'
+    stopApp: true
+- extendedWaitUntil:
+    visible: 'RNScoreCalcView'
+    timeout: 120000
+- tapOn: 'RNScoreCalcView'
+
+# The list sits below the fold, and Android does not auto-scroll the way iOS
+# does — extendedWaitUntil scrolls as part of looking for the element.
+- extendedWaitUntil:
+    visible: '计算机学院综测计算（F2）'
+    timeout: 120000
+- extendedWaitUntil:
+    visible: '社会学院综测计算（F2）'
+    timeout: 120000

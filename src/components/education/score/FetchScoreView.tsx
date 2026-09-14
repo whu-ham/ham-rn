@@ -15,6 +15,7 @@ import FetchEducationView from '@/components/education/FetchEducationView';
 const FetchScoreView = (): React.ReactElement => {
   return (
     <FetchEducationView
+      testID="fetch-score-view"
       tag="FetchScoreView"
       doLoginAndFetch={doLoginAndGetScoreList}
       doFetch={doGetScoreList}

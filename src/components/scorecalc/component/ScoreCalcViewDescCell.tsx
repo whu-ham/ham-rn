@@ -10,6 +10,7 @@ interface CellParam {
   item: ScoreCalcItem;
   listItem: ScoreCalcItem | undefined;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }
 
 const MAX_DESC_LINE = 16;
@@ -18,6 +19,7 @@ const ScoreCalcViewDescCell = ({
   item,
   listItem,
   style,
+  testID,
 }: CellParam): React.ReactElement => {
   const {t} = useTranslation();
   const color = useColor();
@@ -34,13 +36,15 @@ const ScoreCalcViewDescCell = ({
 
   const canUpdate = listItem && item.version !== listItem?.version;
   return (
-    <View style={style}>
+    <View style={style} testID={testID}>
       <Text
+        testID={testID ? `${testID}-title` : undefined}
         style={[{color: color.ham_text_primary}, styles.title]}
         numberOfLines={2}>
         {item.title}
       </Text>
       <Text
+        testID={testID ? `${testID}-meta` : undefined}
         numberOfLines={1}
         style={{
           color: color.ham_text_secondary,
@@ -50,6 +54,7 @@ const ScoreCalcViewDescCell = ({
       <View>
         {canUpdate && (
           <Text
+            testID={testID ? `${testID}-update-log` : undefined}
             style={[
               {
                 color: color.ham_text_primary,
@@ -62,6 +67,7 @@ const ScoreCalcViewDescCell = ({
           </Text>
         )}
         <Text
+          testID={testID ? `${testID}-desc` : undefined}
           style={[
             {
               color: color.ham_text_primary,
@@ -75,6 +81,7 @@ const ScoreCalcViewDescCell = ({
       </View>
       {descLine > MAX_DESC_LINE - 1 && (
         <Text
+          testID={testID ? `${testID}-toggle` : undefined}
           style={[
             {
               color: color.ham_blue,

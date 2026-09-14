@@ -1,0 +1,39 @@
+appId: org.reactjs.native.example.ham-rn
+name: ScoreCalcView renders the bundled script list
+tags:
+  - smoke
+---
+# Drives the debug shell into RNScoreCalcView and asserts the screen rendered.
+#
+# Locale note, and it matters: the two anchors below are the only ones safe to
+# assert on.
+#
+#   - The shell's navigation labels (RNScoreCalcView) are hardcoded English in
+#     ios/ham-rn/HomeView.swift, so they never change.
+#   - The script titles are hardcoded Chinese in
+#     src/business/education/scorecalc/fetch.ts, so they never change either.
+#
+# Everything else on this screen goes through i18next, whose language comes
+# from NativeCommonModule.getLocale() — a native module reading the device
+# locale. It is NOT affected by `defaults write -g AppleLanguages`, and it
+# varies per device, so any translated string here would be a flake.
+#
+# Wait note: the RN screens are reached with `extendedWaitUntil`, not
+# `assertVisible`. `assertVisible` takes only a selector — it has no `timeout`
+# property — and retries for a fixed ~7s, which is not always enough for a cold
+# RN bundle launch. `extendedWaitUntil` takes an explicit `timeout`, so it is
+# the right tool for "wait for the RN content to appear".
+- launchApp:
+    appId: 'org.reactjs.native.example.ham-rn'
+    stopApp: true
+- extendedWaitUntil:
+    visible: 'RNScoreCalcView'
+    timeout: 60000
+- tapOn: 'RNScoreCalcView'
+
+- extendedWaitUntil:
+    visible: '计算机学院综测计算（F2）'
+    timeout: 60000
+- extendedWaitUntil:
+    visible: '社会学院综测计算（F2）'
+    timeout: 60000

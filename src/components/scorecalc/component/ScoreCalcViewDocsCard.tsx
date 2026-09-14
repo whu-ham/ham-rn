@@ -9,21 +9,27 @@ import {useTranslation} from 'react-i18next';
 
 interface ScoreCalcViewDocsCardParams {
   color: ThemeColor;
+  testID?: string;
 }
 
-const ScoreCalcViewDocsCard = ({color}: ScoreCalcViewDocsCardParams) => {
+const ScoreCalcViewDocsCard = ({
+  color,
+  testID,
+}: ScoreCalcViewDocsCardParams) => {
   const {t} = useTranslation();
   return (
     <TouchableOpacity
+      testID={testID}
       onPress={() => {
         CommonModule.openUrl(
           'https://docs.ham.nowcent.cn/developers/ham-rn/score-calc.html',
         );
       }}>
-      <Card>
+      <Card testID={testID ? `${testID}-card` : undefined}>
         <View style={styles.container}>
           <View style={styles.textContainer}>
             <Text
+              testID={testID ? `${testID}-title` : undefined}
               style={[
                 {
                   color: color.ham_text_primary,

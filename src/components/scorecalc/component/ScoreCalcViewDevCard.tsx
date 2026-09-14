@@ -9,8 +9,10 @@ import {useTranslation} from 'react-i18next';
 
 const ScoreCalcViewDevCard = ({
   color,
+  testID,
 }: {
   color: ThemeColor;
+  testID?: string;
 }): React.ReactElement => {
   const {t} = useTranslation();
   const [code, setCode] = React.useState<string>('');
@@ -40,17 +42,26 @@ const ScoreCalcViewDevCard = ({
   };
 
   return (
-    <Card>
+    <Card testID={testID}>
       <View>
-        <Text style={{color: color.ham_text_primary}}>
+        <Text
+          testID={testID ? `${testID}-title` : undefined}
+          style={{color: color.ham_text_primary}}>
           {t('scorecalc.dev.title')}
         </Text>
         <TextInput
+          testID={testID ? `${testID}-input` : undefined}
           placeholder={t('scorecalc.dev.placeholder')}
           onChangeText={input => setCode(input)}
         />
-        <TouchableOpacity onPress={() => verifyCode()}>
-          <Text style={{color: color.ham_blue}}>{t('scorecalc.dev.done')}</Text>
+        <TouchableOpacity
+          testID={testID ? `${testID}-verify` : undefined}
+          onPress={() => verifyCode()}>
+          <Text
+            testID={testID ? `${testID}-verify-text` : undefined}
+            style={{color: color.ham_blue}}>
+            {t('scorecalc.dev.done')}
+          </Text>
         </TouchableOpacity>
       </View>
     </Card>
