@@ -21,7 +21,7 @@
   "education": {
     "course_fetch_failed_with_reason": "授業の取得に失敗しました！{{reason}}",
     "ignored_course_all_failed_ack": "すべての授業を解釈できなかったため、取り込みませんでした。時間割は変更されていません。",
-    "ignored_course_ok": "はい",
+    "ignored_course_ok": "続ける",
     "ignored_course_reason": "時間割「{{weekText}}」を解釈できませんでした",
     "ignored_course_reason_missing": "教務システムが時間割を提供していません",
     "ignored_course_summary": "以下の {{count}} 件の授業は時間割を解釈できませんでした。取り込んでも時間割には表示されません:",

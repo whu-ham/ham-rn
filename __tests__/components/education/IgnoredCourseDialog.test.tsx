@@ -150,7 +150,7 @@ describe('IgnoredCourseDialog', () => {
     expect(screen.queryByTestId('ignored-cancel')).toBeNull();
   });
 
-  it('labels the button with the acknowledgement copy', async () => {
+  it('labels the button with the continue copy', async () => {
     await renderDialog([course('A', 'A1')]);
     expect(screen.getByTestId('ignored-confirm-text')).toHaveTextContent(
       zh.education.ignored_course_ok,
@@ -181,7 +181,7 @@ describe('IgnoredCourseDialog', () => {
     );
   });
 
-  it('keeps the acknowledgement label when nothing parsed', async () => {
+  it('keeps the same button label when nothing parsed', async () => {
     await renderDialog([course('A', 'A1')], {canImport: false});
     expect(screen.getByTestId('ignored-confirm-text')).toHaveTextContent(
       zh.education.ignored_course_ok,
