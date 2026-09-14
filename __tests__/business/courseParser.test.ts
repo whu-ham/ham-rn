@@ -203,6 +203,21 @@ it('still applies the marker when the range is wide enough', () => {
   ]);
 });
 
+it('parses a single-week range as one lesson', () => {
+  const course = firstCourse([{zcd: '3-3周', jcs: '1-2', xqj: '1'}]);
+  expect(course.weekFrom).toBe(3);
+  expect(course.weekTo).toBe(3);
+  const grid = firstGrid([{zcd: '3-3周', jcs: '1-2', xqj: '1'}]);
+  expect(grid.map(g => g.week)).toEqual([3]);
+});
+
+it('splits segments on the full-width and ideographic commas', () => {
+  expect(firstGrid([{zcd: '3-3周，5-5周'}]).map(g => g.week)).toEqual([3, 5]);
+  expect(firstGrid([{zcd: '1-2周、5-6周'}]).map(g => g.week)).toEqual([
+    1, 2, 5, 6,
+  ]);
+});
+
 it('deduplicates weeks shared between segments', () => {
   expect(firstGrid([{zcd: '1-4周,3-6周'}]).map(g => g.week)).toEqual([
     1, 2, 3, 4, 5, 6,

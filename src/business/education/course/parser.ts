@@ -101,11 +101,20 @@ const parseResponse = ({
   return [result, {studentId: json.xsxx.XH ?? json.xsxx.XH_ID}];
 };
 
+/**
+ * Separators the education system uses between zcd segments. The ASCII comma
+ * is the documented one; Chinese payloads also emit the full-width and
+ * ideographic forms. Splitting on all three matters because an unsplit
+ * segment does not fail loudly — `parseInt` stops at the first non-digit, so
+ * "3-3周，5-5周" quietly collapses to week 3 and loses week 5.
+ */
+const WEEK_SEGMENT_SEPARATOR = /[,，、]/;
+
 const getEmptyCourseGridWithWeek = (
   weekTime: string,
 ): Array<CourseGridEntity> => {
   return weekTime
-    .split(',')
+    .split(WEEK_SEGMENT_SEPARATOR)
     .map(week => handleSingleWeekTime(week))
     .filter((data): boolean => data !== undefined)
     .map(data => data!!)
