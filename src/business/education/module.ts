@@ -1,11 +1,10 @@
 import {generateValidate, loginEducation} from '@/business/education/api';
-import type {
-  NativeCourseEntity,
-  NativeCourseGridEntity,
-} from '@/modules/NativeEducationModule';
 import EducationModule from '@/modules/NativeEducationModule';
 import type {CourseEntity, CourseGridEntity} from '@/business/education/course';
 import {getCourseList} from '@/business/education/course';
+// Imported from the parser module rather than the barrel: the barrel is mocked
+// in tests that only stub getCourseList, which would leave this undefined.
+import {toNativeCoursePairing} from '@/business/education/course/parser';
 import {getScoreList} from '@/business/education/score';
 import type {
   ScoreEntity,
@@ -53,13 +52,8 @@ const updateCourseList = async (year: number, semester: number) => {
     return;
   }
 
-  const nativeCourseList: NativeCourseEntity[] = [];
-  const nativeCourseGridList: NativeCourseGridEntity[][] = [];
-  for (let entry of courseListResult.entries()) {
-    const [course, courseGridList] = entry;
-    nativeCourseList.push(course);
-    nativeCourseGridList.push(courseGridList);
-  }
+  const [nativeCourseList, nativeCourseGridList] =
+    toNativeCoursePairing(courseListResult);
   EducationModule.onGetCourseList(nativeCourseList, nativeCourseGridList, null);
 };
 
