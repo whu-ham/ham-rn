@@ -1,5 +1,12 @@
-import {parseResponse} from '@/business/education/course/parser';
+import {
+  parseResponse,
+  toNativeCoursePairing,
+} from '@/business/education/course/parser';
 import {getRandomColorHexString} from '@/business/education/course/color';
+import type {
+  CourseEntity,
+  CourseGridEntity,
+} from '@/business/education/course/type.ts';
 
 type KbItem = {
   kcmc?: string;
@@ -166,6 +173,135 @@ it('returns an empty map for an empty kbList', () => {
   const [map, student] = parse([], {XH: '20210001'});
   expect(map.size).toBe(0);
   expect(student).toEqual({studentId: '20210001'});
+});
+
+// Regression: each of these used to produce an empty grid list. An empty list
+// reaches CourseGridDao.insert([]) on the native side, where SQLite.swift's
+// insertMany([]) degrades to INSERT ... DEFAULT VALUES and violates the NOT
+// NULL constraint on course_table_id — which then cleared the whole timetable.
+it.each([
+  ['full-width parens with 单', '（单）1-8周'],
+  ['full-width parens with 双', '（双）2-8周'],
+])('expands %s (%s)', (_label, zcd) => {
+  expect(firstGrid([{zcd}]).length).toBeGreaterThan(0);
+});
+
+it('swaps a reversed range instead of yielding nothing', () => {
+  expect(firstGrid([{zcd: '8-1周'}]).map(g => g.week)).toEqual([
+    1, 2, 3, 4, 5, 6, 7, 8,
+  ]);
+});
+
+it('keeps a lone week whose parity contradicts the marker', () => {
+  expect(firstGrid([{zcd: '2周(单)'}]).map(g => g.week)).toEqual([2]);
+  expect(firstGrid([{zcd: '3周(双)'}]).map(g => g.week)).toEqual([3]);
+});
+
+it('still applies the marker when the range is wide enough', () => {
+  expect(firstGrid([{zcd: '1-8周(单)'}]).map(g => g.week)).toEqual([
+    1, 3, 5, 7,
+  ]);
+});
+
+it('deduplicates weeks shared between segments', () => {
+  expect(firstGrid([{zcd: '1-4周,3-6周'}]).map(g => g.week)).toEqual([
+    1, 2, 3, 4, 5, 6,
+  ]);
+});
+
+// These stay unparsable, so the course keeps an empty grid list. Filtering it
+// out is toNativeCoursePairing's job, not parseResponse's.
+it.each([['全周'], ['第1-8周'], [''], [undefined]])(
+  'yields an empty grid list for the unparsable zcd %p',
+  zcd => {
+    const [map] = parse([{kcmc: 'A', zcd}]);
+    expect(map.size).toBe(1);
+    expect([...map.values()][0]).toEqual([]);
+  },
+);
+
+describe('toNativeCoursePairing', () => {
+  const entity = (name: string): CourseEntity => ({
+    name,
+    courseId: `id-${name}`,
+    instructor: '',
+    instructorType: '',
+    weekFrom: -1,
+    weekTo: -1,
+    classFrom: -1,
+    classTo: -1,
+    weekday: 1,
+    courseType: '',
+    credit: 0,
+    location: '',
+    color: '',
+  });
+
+  const grid = (week: number): CourseGridEntity => ({
+    week,
+    weekday: 1,
+    classFrom: 1,
+    classTo: 2,
+    color: '',
+  });
+
+  it('flattens a map into two parallel arrays in insertion order', () => {
+    const map = new Map<CourseEntity, CourseGridEntity[]>([
+      [entity('A'), [grid(1), grid(2)]],
+      [entity('B'), [grid(3)]],
+    ]);
+    const [courses, grids] = toNativeCoursePairing(map);
+    expect(courses.map(c => c.name)).toEqual(['A', 'B']);
+    expect(grids.map(g => g.map(x => x.week))).toEqual([[1, 2], [3]]);
+    expect(courses).toHaveLength(grids.length);
+  });
+
+  it('drops a course whose grid list is empty', () => {
+    const map = new Map<CourseEntity, CourseGridEntity[]>([
+      [entity('A'), [grid(1)]],
+      [entity('B'), []],
+      [entity('C'), [grid(2)]],
+    ]);
+    const [courses, grids] = toNativeCoursePairing(map);
+    expect(courses.map(c => c.name)).toEqual(['A', 'C']);
+    expect(grids).toHaveLength(2);
+  });
+
+  it('never emits an empty grid array', () => {
+    const map = new Map<CourseEntity, CourseGridEntity[]>([
+      [entity('A'), []],
+      [entity('B'), [grid(1)]],
+      [entity('C'), []],
+    ]);
+    const [, grids] = toNativeCoursePairing(map);
+    expect(grids.some(g => g.length === 0)).toBe(false);
+  });
+
+  it('returns empty arrays when every course is dropped', () => {
+    const map = new Map<CourseEntity, CourseGridEntity[]>([
+      [entity('A'), []],
+      [entity('B'), []],
+    ]);
+    expect(toNativeCoursePairing(map)).toEqual([[], []]);
+  });
+
+  it('handles an empty map', () => {
+    expect(toNativeCoursePairing(new Map())).toEqual([[], []]);
+  });
+
+  it('drops unparsable courses from a mixed payload', () => {
+    const [map] = parse([
+      {kcmc: 'A', zcd: '1-4周'},
+      {kcmc: 'B', zcd: '全周'},
+      {kcmc: 'C', zcd: '（单）1-8周'},
+      {kcmc: 'D', zcd: undefined},
+      {kcmc: 'E', zcd: '8-1周'},
+    ]);
+    const [courses, grids] = toNativeCoursePairing(map);
+    expect(courses.map(c => c.name)).toEqual(['A', 'C', 'E']);
+    expect(courses).toHaveLength(grids.length);
+    expect(grids.some(g => g.length === 0)).toBe(false);
+  });
 });
 
 it('prefers XH over XH_ID for the studentId', () => {
