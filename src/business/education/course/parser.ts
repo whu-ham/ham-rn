@@ -1,5 +1,6 @@
 import type {CourseEntity, CourseGridEntity} from './type.ts';
 import {getRandomColorHexString} from './color';
+import Log from '@/modules/NativeLog';
 
 /**
  * @author orangeboyChen
@@ -71,7 +72,11 @@ const parseResponse = ({
       course.classTo = parseInt(classToStr, 10) || -1;
     }
 
+    // A course with no parsable weeks stays in the map with an empty grid
+    // list; parseResponse keeps reporting what the system sent. Dropping it
+    // is toNativeCoursePairing's job, at the native boundary.
     const courseGridList = getEmptyCourseGridWithWeek(data.zcd ?? '');
+
     const weekFrom = Math.min(...courseGridList.map(grid => grid.week));
     const weekTo = Math.max(...courseGridList.map(grid => grid.week));
     const weekPeriodContinuous =
@@ -143,20 +148,72 @@ const handleSingleWeekTime = (
     courseWeekType = CourseWeekType.EVEN;
   }
 
-  const clearTimeStr = singleWeekTime.replace(/[()单双周]/g, '');
+  const clearTimeStr = singleWeekTime.replace(/[()（）单双周]/g, '');
   const weekNumStrArr = clearTimeStr.split('-');
   const weekFrom = parseInt(weekNumStrArr[0], 10);
   if (isNaN(weekFrom)) {
     return undefined;
   }
-  const weekTo =
+  let weekTo =
     weekNumStrArr.length > 1 ? parseInt(weekNumStrArr[1], 10) : weekFrom;
+  if (isNaN(weekTo)) {
+    weekTo = weekFrom;
+  }
+
+  // The system sometimes sends reversed ranges like "8-1周". Swap them so the
+  // loop expands in ascending order — otherwise it never runs and the course
+  // parses to zero grids.
+  const [startWeek, endWeek] =
+    weekFrom <= weekTo ? [weekFrom, weekTo] : [weekTo, weekFrom];
+
+  // Keep a lone week whose parity contradicts an odd/even marker (e.g.
+  // "2周(单)") — dropping it would leave the course with zero grids.
+  let courseWeekTypeResolved = courseWeekType;
+  if (startWeek === endWeek) {
+    const isOddWeek = startWeek % 2 === 1;
+    if (
+      (courseWeekType === CourseWeekType.ODD && !isOddWeek) ||
+      (courseWeekType === CourseWeekType.EVEN && isOddWeek)
+    ) {
+      courseWeekTypeResolved = CourseWeekType.NORMAL;
+    }
+  }
 
   return {
-    courseWeekType,
-    weekFrom,
-    weekTo: isNaN(weekTo) ? weekFrom : weekTo,
+    courseWeekType: courseWeekTypeResolved,
+    weekFrom: startWeek,
+    weekTo: endWeek,
   };
 };
 
-export {parseResponse};
+/**
+ * Flattens the parse result into the two parallel arrays the native side
+ * expects.
+ *
+ * Courses with an empty grid list must be filtered out: when
+ * `CourseGridDao.insert` receives an empty array, SQLite.swift's
+ * `insertMany([])` degrades to `INSERT INTO course_grid DEFAULT VALUES`,
+ * which violates the NOT NULL constraint on course_table_id and aborts the
+ * whole save, leaving the timetable empty.
+ */
+const toNativeCoursePairing = (courseListResult: {
+  entries(): IterableIterator<[CourseEntity, CourseGridEntity[]]>;
+}): [CourseEntity[], CourseGridEntity[][]] => {
+  const nativeCourseList: CourseEntity[] = [];
+  const nativeCourseGridList: CourseGridEntity[][] = [];
+  for (let entry of courseListResult.entries()) {
+    const [course, courseGridList] = entry;
+    if (courseGridList.length === 0) {
+      Log.e(
+        'toNativeCoursePairing',
+        `dropped empty-grid course: name=${course.name}`,
+      );
+      continue;
+    }
+    nativeCourseList.push(course);
+    nativeCourseGridList.push(courseGridList);
+  }
+  return [nativeCourseList, nativeCourseGridList];
+};
+
+export {parseResponse, toNativeCoursePairing};
