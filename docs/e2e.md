@@ -104,10 +104,11 @@ CI runs every flow in `.maestro/{ios,android}/` on both platforms:
 |---|---|
 | `scorecalc.yaml` | The only screen with real, stable content — the bundled script list. |
 | `ignored-course.yaml` | The course-import path, including the ignored-course notice. |
+| `course-import-outcomes.yaml` | Every other way the import can end: clean, all-failed, empty, login failure. |
 | `smoke.yaml` | Each registered entry launches with the embedded bundle. |
 
-See [Testing the course flow](#testing-the-course-flow) for how the second one
-works without credentials, and
+See [Testing the course flow](#testing-the-course-flow) for how the second and
+third ones work without credentials, and
 [Known instability](#known-instability-across-repeated-runs) for what to expect
 if you run flows repeatedly by hand.
 
@@ -207,7 +208,7 @@ on it working. (CI no longer runs this step at all.)
 | Screen | Worth an e2e flow? | Why |
 |---|---|---|
 | `RNScoreCalcView` | **Yes** | The only screen with real UI: script list, select/upgrade buttons, and the developer debug card. Its two script titles are hardcoded Chinese, so the assertions hold regardless of locale. |
-| `RNFetchCourseViewE2E` | **Yes** | Drives the course-import path with a canned payload, including the ignored-course notice. See [Testing the course flow](#testing-the-course-flow). |
+| `RNFetchCourseViewE2E` | **Yes** | Drives the course-import path with a canned payload, including the ignored-course notice, and every other branch of the same state machine via its `...E2E<Scenario>` siblings. See [Testing the course flow](#testing-the-course-flow). |
 | `RNCasMobileLoginView` | Partially | Loads `cas.whu.edu.cn` in a WebView. Without test credentials you can only assert that the WebView loads, not that login works. |
 | `RNFetchCourseView` | No | Renders a spinner, then calls back into native. There is no UI to assert beyond "it did not crash". Its e2e-named sibling covers the behaviour. |
 | `RNFetchScoreView` | No | Renders a spinner, then calls back into native. |
@@ -227,6 +228,49 @@ step is production code: real `loginEducation`, real `getCourseList`, real
 uses the education system's own shapes, including a week string the parser
 cannot read (`全周`) and a course with no schedule at all — the two cases the
 notice exists for.
+
+#### One entry per branch
+
+The import has six ways to end and they are distinguished **only** by what the
+server returns, so a flow cannot reach them by interacting with the UI — it has
+to launch a different canned payload. That means one AppRegistry entry per
+branch, each with its own row in the debug shell:
+
+| Entry | Payload | The branch it puts the machine in |
+|---|---|---|
+| `RNFetchCourseViewE2E` | 2 parse, 20 do not | Notice appears; acknowledging commits a timetable. |
+| `...E2EClean` | 2 parse, 0 do not | No notice; the import completes on its own. |
+| `...E2EAllFailed` | 0 parse, 20 do not | Notice appears; acknowledging reports an error. |
+| `...E2EEmpty` | no courses at all | No notice; an empty timetable is a success. |
+| `...E2ELoginFailed` | CAS answers without the success marker | Fails before any course is parsed. |
+
+`src/e2e/courseImportEntries.tsx` builds them, and `__tests__/App.test.tsx`
+asserts that each is registered **and** listed in both `HomeView.swift` and
+`HomeActivity.kt` — a scenario in one list but not the other is unreachable by
+Maestro, and the failure is a blank container rather than an error.
+
+#### Seeing what the host was told
+
+`EducationModule.onGetCourseList` is the only signal the host gets, and in the
+debug shell it ends in `Log.i` / `NSLog` — which Maestro cannot read. So the
+e2e entries also mount `src/e2e/courseImportProbe.tsx`, which wraps that module
+method, records what it was called with, and renders `success` or `failed`.
+Without it a flow could see the notice appear but never learn what the import
+decided, and the four non-notice branches would be indistinguishable.
+
+The verdict words are deliberately not i18next copy — see the rules below.
+
+#### The probe sits below the course screen, and that is load-bearing
+
+At the top of the screen the probe rendered correctly and
+`adb shell uiautomator dump` listed it, but Maestro still judged it not
+visible: on this device the status bar occupies y 0–63 and the probe landed at
+y 10–47, i.e. underneath it. Maestro treats an occluded node as absent;
+`uiautomator dump` does not, which is why the two disagreed and why the symptom
+looked like the import never reported anything.
+
+If you move the probe, keep it clear of the status bar and of the notice's own
+layout.
 
 Two rules for assertions in these flows, both verified rather than assumed:
 
