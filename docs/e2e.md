@@ -276,11 +276,29 @@ single run: 5/5 COMPLETED
 ```
 
 This does **not** affect CI: each job runs exactly once on a fresh runner,
-which is the settled-device case. Both e2e jobs pass there (iOS ~16m,
-Android ~9m), so they gate the merge. `continue-on-error` was set initially
+which is the settled-device case. `continue-on-error` was set initially
 because of the local numbers above; it was removed once CI proved stable. If
 the jobs start failing intermittently on CI, investigate rather than
 re-adding `continue-on-error` — a non-blocking job is one nobody has to act on.
+
+### The XCUITest driver sometimes never starts
+
+A distinct failure mode, seen once on CI: Maestro logs
+
+```
+[Failed] Perform XCUITest driver status check on <udid>,
+exception: java.net.ConnectException: Failed to connect to /127.0.0.1:<port>
+```
+
+repeated for ~2 minutes and then the job fails. **No flow runs at all** — there
+are no `[Passed]`/`[Failed]` lines for individual flows, and the Maestro
+artifact is uploaded by the `if: failure()` step rather than by a real
+assertion. The driver never came up, so this says nothing about the app.
+
+It is infrastructure, not a regression: re-running the same job on the same
+commit passed with 3/3 flows. Check whether any flow ran before reading it as a
+product failure — a log with no per-flow results is a driver problem, not a
+broken screen.
 
 Two failure shapes when running locally, both environment-level, not flow bugs:
 
