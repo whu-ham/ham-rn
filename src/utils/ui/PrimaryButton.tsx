@@ -9,23 +9,29 @@ import Color from 'color';
 import {useColor} from '@/utils/color/color';
 
 /**
- * The app's primary action, matching the host app's success/error buttons:
- * blue label on a 10%-blue fill, 8pt corners, capped at 350pt wide.
+ * The app's primary action, matching the host app's success/error button.
  *
- * Mirrors `SuccessView.swift` in ham-ios, which draws this as
- * `Color.blue.opacity(0.1)` with `cornerRadius(8)` — a tinted fill rather than
- * a solid one. Composited over a white page that lands on #E6F2FF, which is
- * why `ham_lightBlue` (#E6F1FF) is the same idea in token form.
+ * Both hosts draw this the same way: the accent at a low alpha for the fill,
+ * and the *raw* accent for the label.
  *
- * One deliberate departure: the label is the accent darkened by 0.16 instead
- * of the raw accent. On this fill the raw blue measures 3.53:1, below the
- * 4.5:1 WCAG AA floor; darkening it just enough reaches 4.77:1 and is very
- * hard to tell apart by eye.
+ *   - ham-ios `SuccessView.swift`: `Color.blue.opacity(0.1)` fill,
+ *     `foregroundColor(Color.blue)`, `cornerRadius(8)`, `frame(maxWidth: 350)`.
+ *   - ham-android `SuccessView.kt`: `Color.ham_blue.copy(alpha = 0.15f)` fill,
+ *     `color = Color.ham_blue`, `RoundedCornerShape(12.dp)`, `height(48.dp)`.
+ *
+ * Neither host adjusts the label. They can get away with that because the
+ * accent is itself a per-scheme token — `ham_blue` is #007AFF in
+ * `values/colors.xml` and #0A84FF in `values-night/colors.xml`, and iOS gets
+ * the same split from the `Color.blue` system color — so one unmodified
+ * reference already resolves correctly under both schemes.
+ *
+ * The fill is composited over the surface rather than left as a translucent
+ * rgba(), so the button reads the same whether it lands on `ham_bg_b1` or
+ * `ham_bg_b2`: an alpha would stack with whatever is painted underneath.
  */
 const MAX_WIDTH = 350;
 const CORNER_RADIUS = 8;
 const FILL_OPACITY = 0.1;
-const LABEL_DARKEN = 0.16;
 
 const PrimaryButton = ({
   label,
@@ -55,7 +61,7 @@ const PrimaryButton = ({
         FILL_OPACITY * channel + (1 - FILL_OPACITY) * surface[index],
     ) as [number, number, number],
   ).hex();
-  const labelColor = Color(color.ham_blue).darken(LABEL_DARKEN).hex();
+  const labelColor = color.ham_blue;
 
   return (
     <TouchableOpacity
