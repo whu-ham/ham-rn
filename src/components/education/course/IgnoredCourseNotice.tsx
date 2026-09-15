@@ -109,9 +109,13 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
+  // Sized by its content instead of filling the sheet. As `flex: 1` the column
+  // claimed every pixel the sheet had and pushed the button down to the bottom
+  // edge, ~1600dp below the last row. Now it sits just under the list.
   content: {
-    flex: 1,
-    padding: 20,
+    flexShrink: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   item: {
     paddingVertical: 6,
@@ -123,8 +127,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
+  // Height driven by its rows. An explicit `flexShrink: 1` here used to keep
+  // the list at its natural height, which is correct — so it is left to the
+  // default (1) rather than restated.
   list: {
-    flexShrink: 1,
     marginTop: 12,
   },
   summary: {
