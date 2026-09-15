@@ -14,11 +14,19 @@ tags:
 # one needs its own AppRegistry entry (see src/e2e/courseFixture.ts) and its
 # own row in the debug shell.
 #
-# The assertion that makes this possible is `courseImportVerdict`, rendered by
-# src/e2e/courseImportProbe.tsx. `EducationModule.onGetCourseList` is the only
-# signal the host gets and it ends in NSLog, so without the probe a flow could
-# see the notice appear but never learn what the import decided — and Maestro
-# cannot read the device log.
+# The assertion that makes this possible is `courseImportVerdict-success` /
+# `courseImportVerdict-failed`, rendered by src/e2e/courseImportProbe.tsx.
+# `EducationModule.onGetCourseList` is the only signal the host gets and it ends
+# in NSLog, so without the probe a flow could see the notice appear but never
+# learn what the import decided — and Maestro cannot read the device log.
+#
+# The outcome is read from the accessibility *label*, not from the text on
+# screen. On iOS a `accessibilityLabel` replaces a `<Text>`'s content in the
+# accessibility tree, so the words 'success' / 'failed' — however clearly
+# rendered — never reach it. Maestro read `courseImportVerdict`, matched that,
+# and then failed `assertVisible: 'success'` with the verdict on screen. See
+# docs/e2e.md. Android is unaffected: it selects by `id`, and there a label does
+# not displace the text, which is why only this flow ever failed.
 #
 # Two rules, both load-bearing and both shared with ignored-course.yaml:
 #
@@ -50,11 +58,13 @@ tags:
 - tapOn: 'E2E Clean'
 
 # No acknowledgement is possible or needed: the verdict arrives on its own.
-# Matched by the label, not the testID — see the note at the top.
+# Waiting for the outcome (rather than for the probe) also settles the
+# first-frame race the Android copy handles with a separate wait for
+# `fetch-course-view-loading`: that testID does not reach iOS's accessibility
+# tree, and matching the loading text would mean asserting i18next copy.
 - extendedWaitUntil:
-    visible: 'courseImportVerdict'
+    visible: 'courseImportVerdict-success'
     timeout: 60000
-- assertVisible: 'success'
 - assertNotVisible: 'ignoredCourseAcknowledge'
 
 # ---------------------------------------------------------------------------
@@ -76,12 +86,14 @@ tags:
     visible: 'ignoredCourseAcknowledge'
     timeout: 60000
 # Nothing has been reported yet: the import waits for the acknowledgement.
-- assertNotVisible: 'success'
-- assertNotVisible: 'failed'
+# Both outcomes are checked, because a verdict from an earlier launch in this
+# same run would satisfy either one on its own.
+- assertNotVisible: 'courseImportVerdict-success'
+- assertNotVisible: 'courseImportVerdict-failed'
 
 - tapOn: 'ignoredCourseAcknowledge'
 - extendedWaitUntil:
-    visible: 'failed'
+    visible: 'courseImportVerdict-failed'
     timeout: 60000
 
 # ---------------------------------------------------------------------------
@@ -100,7 +112,7 @@ tags:
 - tapOn: 'E2E Empty'
 
 - extendedWaitUntil:
-    visible: 'success'
+    visible: 'courseImportVerdict-success'
     timeout: 60000
 - assertNotVisible: 'ignoredCourseAcknowledge'
 
@@ -121,9 +133,9 @@ tags:
 - tapOn: 'E2E LoginFailed'
 
 - extendedWaitUntil:
-    visible: 'failed'
+    visible: 'courseImportVerdict-failed'
     timeout: 60000
 # The failure happened before any course was parsed, so there is nothing to
 # acknowledge and no notice to show.
 - assertNotVisible: 'ignoredCourseAcknowledge'
-- assertNotVisible: 'success'
+- assertNotVisible: 'courseImportVerdict-success'

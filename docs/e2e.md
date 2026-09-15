@@ -249,6 +249,38 @@ asserts that each is registered **and** listed in both `HomeView.swift` and
 `HomeActivity.kt` — a scenario in one list but not the other is unreachable by
 Maestro, and the failure is a blank container rather than an error.
 
+#### The verdict is read from the label, not the text
+
+**On iOS an `accessibilityLabel` replaces a `<Text>`'s content in the
+accessibility tree.** Maestro reads that tree and nothing else, so once the
+verdict `Text` carried `accessibilityLabel="courseImportVerdict"`, the words
+`success` and `failed` were no longer visible to it — despite being rendered,
+correctly, on screen. The flow waited for the label (which passed) and then
+failed `assertVisible: 'success'`, with the verdict sitting there the whole
+time.
+
+So the probe puts the outcome *in* the label:
+
+| Rendered text | `accessibilityLabel` | What Maestro can match on iOS |
+|---|---|---|
+| `success` | `courseImportVerdict-success` | `courseImportVerdict-success` |
+| `failed` | `courseImportVerdict-failed` | `courseImportVerdict-failed` |
+| `pending` | `courseImportPending` | `courseImportPending` |
+
+Android is unaffected and needs none of this: it selects by `id`, because the RN
+`testID` does surface there as a resource-id, and on Android a label does not
+displace the text. That asymmetry is why this failure was iOS-only — android
+passed 4/4 while ios failed 1/4 on the same commit.
+
+The general form of the trap: **never put an `accessibilityLabel` on a `<Text>`
+whose content a flow has to assert.** If a flow must read the text, leave the
+label off and let iOS expose the content. If a flow must select the node by
+label, put everything the flow needs *in* the label.
+
+`__tests__/e2e/courseFixture.test.ts` pins the fixture's shape, because a
+fixture that stopped producing ignored courses would leave the flow asserting
+nothing while still passing.
+
 #### Seeing what the host was told
 
 `EducationModule.onGetCourseList` is the only signal the host gets, and in the
@@ -259,6 +291,12 @@ Without it a flow could see the notice appear but never learn what the import
 decided, and the four non-notice branches would be indistinguishable.
 
 The verdict words are deliberately not i18next copy — see the rules below.
+
+The flows assert the verdict through its `accessibilityLabel`
+(`courseImportVerdict-success` / `courseImportVerdict-failed`), not through the
+text on screen. See
+[The verdict is read from the label, not the text](#the-verdict-is-read-from-the-label-not-the-text)
+for why.
 
 #### The probe sits below the course screen, and that is load-bearing
 
@@ -277,6 +315,9 @@ Two rules for assertions in these flows, both verified rather than assumed:
 - **Never select by `testID`.** RN's `testID` does not reach iOS's accessibility
   tree, so Maestro cannot see it. Anything a flow must select needs an
   `accessibilityLabel`; the dialog and its button carry them for this reason.
+  **But a label on a `<Text>` replaces its content in that tree** — see
+  [The verdict is read from the label, not the text](#the-verdict-is-read-from-the-label-not-the-text).
+  Putting one on text a flow has to read is how this flow broke.
 - **Never assert i18next copy.** The language comes from
   `NativeCommonModule.getLocale()`, which reads the device locale and ignores
   `defaults write -g AppleLanguages`. The flows assert on course names, which

@@ -49,9 +49,18 @@ describe('courseImportProbe', () => {
       error,
     );
 
+  // Must stay first: the probe keeps module-level state, so only the first
+  // render in this file sees the pre-report state.
   it('says pending before anything has been reported', async () => {
     expect(screen.getByTestId('course-import-pending')).toBeTruthy();
     expect(screen.queryByTestId('course-import-verdict')).toBeNull();
+    // Pending has to be labelled distinctly from either outcome. It shares the
+    // verdict's prefix, so if it were labelled `courseImportVerdict` a flow
+    // waiting for `courseImportVerdict-success` would match it by substring and
+    // pass on the first frame, before the import had decided anything.
+    expect(screen.getByLabelText('courseImportPending')).toBeTruthy();
+    expect(screen.queryByLabelText('courseImportVerdict-success')).toBeNull();
+    expect(screen.queryByLabelText('courseImportVerdict-failed')).toBeNull();
   });
 
   it('says success when a timetable was committed', async () => {
@@ -89,7 +98,33 @@ describe('courseImportProbe', () => {
     // only find these by label.
     report(1, null);
     await waitFor(() =>
-      expect(screen.getByLabelText('courseImportVerdict')).toBeTruthy(),
+      expect(screen.getByLabelText('courseImportVerdict-success')).toBeTruthy(),
+    );
+  });
+
+  // The reason the label carries the outcome: on iOS an `accessibilityLabel`
+  // *replaces* a <Text>'s content in the accessibility tree, so the word
+  // 'success' never reaches it no matter how clearly it is rendered. Maestro
+  // reads that tree and nothing else, so a flow asserting the bare word could
+  // never pass — which is exactly how this failed on CI. Android is unaffected
+  // (it selects by `id`), so only the iOS flow depends on this.
+  it('encodes the outcome in the label, not only in the text', async () => {
+    report(2, null);
+    await waitFor(() =>
+      expect(screen.getByLabelText('courseImportVerdict-success')).toBeTruthy(),
+    );
+    expect(screen.getByTestId('course-import-verdict')).toHaveTextContent(
+      'success',
+    );
+  });
+
+  it('encodes a failure in the label, not only in the text', async () => {
+    report(0, '登录失败');
+    await waitFor(() =>
+      expect(screen.getByLabelText('courseImportVerdict-failed')).toBeTruthy(),
+    );
+    expect(screen.getByTestId('course-import-verdict')).toHaveTextContent(
+      'failed',
     );
   });
 });
