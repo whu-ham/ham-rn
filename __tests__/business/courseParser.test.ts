@@ -78,6 +78,9 @@ it('falls back to empty strings and -1 for missing fields', () => {
     color: getRandomColorHexString(''),
     semester: 1,
     year: 2024,
+    // Recorded so the UI can say the system sent no week schedule at all,
+    // rather than showing a blank reason for an unparsable course.
+    rawWeekText: '',
     instructor: '',
     instructorType: '',
     courseType: '',
@@ -297,11 +300,14 @@ describe('toNativeCoursePairing', () => {
       [entity('A'), []],
       [entity('B'), []],
     ]);
-    expect(toNativeCoursePairing(map)).toEqual([[], []]);
+    const [courses, grids, ignored] = toNativeCoursePairing(map);
+    expect(courses).toEqual([]);
+    expect(grids).toEqual([]);
+    expect(ignored.map(c => c.name)).toEqual(['A', 'B']);
   });
 
   it('handles an empty map', () => {
-    expect(toNativeCoursePairing(new Map())).toEqual([[], []]);
+    expect(toNativeCoursePairing(new Map())).toEqual([[], [], []]);
   });
 
   it('drops unparsable courses from a mixed payload', () => {
@@ -316,6 +322,64 @@ describe('toNativeCoursePairing', () => {
     expect(courses.map(c => c.name)).toEqual(['A', 'C', 'E']);
     expect(courses).toHaveLength(grids.length);
     expect(grids.some(g => g.length === 0)).toBe(false);
+  });
+
+  it('reports the courses it dropped, in source order', () => {
+    const map = new Map<CourseEntity, CourseGridEntity[]>([
+      [entity('A'), [grid(1)]],
+      [entity('B'), []],
+      [entity('C'), []],
+      [entity('D'), [grid(2)]],
+    ]);
+    const [, , ignored] = toNativeCoursePairing(map);
+    expect(ignored.map(c => c.name)).toEqual(['B', 'C']);
+  });
+
+  it('reports nothing ignored when every course parsed', () => {
+    const map = new Map<CourseEntity, CourseGridEntity[]>([
+      [entity('A'), [grid(1)]],
+      [entity('B'), [grid(2)]],
+    ]);
+    const [, , ignored] = toNativeCoursePairing(map);
+    expect(ignored).toEqual([]);
+  });
+
+  it('handles an empty map without reporting anything ignored', () => {
+    expect(toNativeCoursePairing(new Map())).toEqual([[], [], []]);
+  });
+
+  it('strips the diagnostics field from courses it keeps', () => {
+    const kept = {...entity('A'), rawWeekText: '1-4周'};
+    const [courses] = toNativeCoursePairing(
+      new Map<CourseEntity, CourseGridEntity[]>([[kept, [grid(1)]]]),
+    );
+    // The native entity has no such column, so it must not cross the boundary.
+    expect(courses[0]).not.toHaveProperty('rawWeekText');
+  });
+
+  it('leaves the diagnostics field on the courses it drops', () => {
+    const dropped = {...entity('B'), rawWeekText: '全周'};
+    const [, , ignored] = toNativeCoursePairing(
+      new Map<CourseEntity, CourseGridEntity[]>([[dropped, []]]),
+    );
+    expect(ignored[0].rawWeekText).toBe('全周');
+  });
+});
+
+describe('unparsable week diagnostics', () => {
+  it('records the week text the system sent when nothing parsed', () => {
+    const course = firstCourse([{kcmc: 'A', zcd: '全周'}]);
+    expect(course.rawWeekText).toBe('全周');
+  });
+
+  it('records an empty week text when the field is absent', () => {
+    expect(firstCourse([{kcmc: 'A'}]).rawWeekText).toBe('');
+  });
+
+  it('does not record a week text once the course parsed', () => {
+    expect(
+      firstCourse([{kcmc: 'A', zcd: '1-4周'}]).rawWeekText,
+    ).toBeUndefined();
   });
 });
 

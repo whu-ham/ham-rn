@@ -1,10 +1,16 @@
 import React from 'react';
-import {render, screen, waitFor} from '@testing-library/react-native';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
 import FetchCourseView from '@/components/education/course/FetchCourseView';
 import FetchScoreView from '@/components/education/score/FetchScoreView';
 import {getCourseList} from '@/business/education/course';
 import {getScoreList, getUserInfo} from '@/business/education/score/api';
 import {loginEducation} from '@/business/education';
+import {CasReAuthLoginError} from '@/business/education/api';
 import EducationModule from '@/modules/NativeEducationModule';
 import zh from '@/i18n/zh/translation.json';
 
@@ -163,6 +169,333 @@ describe('FetchCourseView', () => {
         null,
       ),
     );
+  });
+});
+
+/**
+ * A timetable parsed with holes reaches the host only after the user has seen
+ * what was dropped. The dialog is a notice, not a choice — the import still
+ * runs, it just waits for the acknowledgement.
+ */
+describe('FetchCourseView ignored-course notice', () => {
+  const course = (name: string) => ({name, courseId: `id-${name}`});
+  const grid = (week: number) => [
+    {week, weekday: 1, classFrom: 1, classTo: 2, color: '#fff'},
+  ];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    courseConfig(2026, 1);
+  });
+
+  const renderWith = async (
+    map: Map<Record<string, unknown>, Array<Record<string, unknown>>>,
+  ) => {
+    (getCourseList as jest.Mock).mockResolvedValue([map, {studentId: ''}]);
+    return await render(<FetchCourseView />);
+  };
+
+  it('imports straight away when nothing was ignored', async () => {
+    await renderWith(new Map([[course('A'), grid(1)]]));
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+        [course('A')],
+        [grid(1)],
+        null,
+      ),
+    );
+    expect(screen.queryByTestId('fetch-course-view-ignored')).toBeNull();
+  });
+
+  it('holds the import back and shows the notice when courses were ignored', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    expect(EducationModule.onGetCourseList).not.toHaveBeenCalled();
+  });
+
+  it('lists every ignored course by name', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+        [course('C'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId('fetch-course-view-ignored-item-name-0'),
+    ).toHaveTextContent('B');
+    expect(
+      screen.getByTestId('fetch-course-view-ignored-item-name-1'),
+    ).toHaveTextContent('C');
+    expect(screen.queryByTestId('fetch-course-view-ignored-item-2')).toBeNull();
+  });
+
+  it('says why each course was ignored', async () => {
+    (getCourseList as jest.Mock).mockResolvedValue([
+      new Map<Record<string, unknown>, Array<Record<string, unknown>>>(),
+      {studentId: ''},
+    ]);
+    // Go through the real parser so the ignored course carries the week text
+    // the education system actually sent.
+    const {parseResponse} = jest.requireActual(
+      '@/business/education/course/parser',
+    );
+    const [parsed] = parseResponse({
+      json: {
+        xsxx: {},
+        kbList: [
+          {kcmc: '高等数学', jxbmc: 'MATH001', zcd: '全周'},
+          {kcmc: '英语', jxbmc: 'ENG001', zcd: '1-8周'},
+        ],
+      },
+      year: 2026,
+      semester: 1,
+    });
+    (getCourseList as jest.Mock).mockResolvedValue([parsed, {studentId: ''}]);
+
+    await render(<FetchCourseView />);
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId('fetch-course-view-ignored-item-name-0'),
+    ).toHaveTextContent('高等数学');
+    expect(
+      screen.getByTestId('fetch-course-view-ignored-item-reason-0'),
+    ).toHaveTextContent(
+      zh.education.ignored_course_reason.replace('{{weekText}}', '全周'),
+    );
+  });
+
+  it('imports the parsed courses once the user acknowledges', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+        [course('A')],
+        [grid(1)],
+        null,
+      ),
+    );
+  });
+
+  it('dismisses the notice after acknowledging', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+    await waitFor(() =>
+      expect(screen.queryByTestId('fetch-course-view-ignored')).toBeNull(),
+    );
+  });
+
+  it('imports only once when acknowledged', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+    await waitFor(() =>
+      expect(screen.queryByTestId('fetch-course-view-ignored')).toBeNull(),
+    );
+    expect(EducationModule.onGetCourseList).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not import when every course failed to parse', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), []],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+
+    // An empty success payload would let a replace-semantics host wipe the
+    // timetable, so this must read as an error, not as "imported nothing".
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+        [],
+        [],
+        zh.education.ignored_course_all_failed_ack,
+      ),
+    );
+  });
+
+  it('explains that nothing will be imported when every course failed', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), []],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId('fetch-course-view-ignored-summary'),
+    ).toHaveTextContent(
+      zh.education.ignored_course_summary_all_failed.replace('{{count}}', '2'),
+    );
+  });
+
+  it('completes the import after the re-auth flow runs a second fetch', async () => {
+    // The first attempt fails with a CAS error from the fetch itself, the
+    // WebView completes, and doFetch runs again. This is the path a stale
+    // session takes, and it has to end in a successful callback.
+    let attempts = 0;
+    (getCourseList as jest.Mock).mockImplementation(() => {
+      attempts += 1;
+      if (attempts === 1) {
+        return Promise.reject(
+          new CasReAuthLoginError('https://cas.example/reauth'),
+        );
+      }
+      return Promise.resolve([
+        new Map([[course('A'), grid(1)]]),
+        {studentId: ''},
+      ]);
+    });
+
+    await render(<FetchCourseView />);
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-reauth')).toBeTruthy(),
+    );
+
+    global.fetch = jest.fn(() => Promise.resolve(new Response())) as never;
+    screen
+      .getByTestId('fetch-course-view-reauth')
+      .props.onShouldStartLoadWithRequest({
+        url: 'https://cas.example/?ticket=ST-1',
+      });
+
+    await waitFor(() => expect(getCourseList).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalled(),
+    );
+  });
+
+  it('shows the notice when the re-auth fetch also has ignored courses', async () => {
+    let attempts = 0;
+    (getCourseList as jest.Mock).mockImplementation(() => {
+      attempts += 1;
+      if (attempts === 1) {
+        return Promise.reject(
+          new CasReAuthLoginError('https://cas.example/reauth'),
+        );
+      }
+      return Promise.resolve([
+        new Map([
+          [course('A'), grid(1)],
+          [course('B'), []],
+        ]),
+        {studentId: ''},
+      ]);
+    });
+
+    await render(<FetchCourseView />);
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-reauth')).toBeTruthy(),
+    );
+    global.fetch = jest.fn(() => Promise.resolve(new Response())) as never;
+    screen
+      .getByTestId('fetch-course-view-reauth')
+      .props.onShouldStartLoadWithRequest({
+        url: 'https://cas.example/?ticket=ST-1',
+      });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+    await waitFor(() =>
+      expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+        [course('A')],
+        [grid(1)],
+        null,
+      ),
+    );
+  });
+
+  it('does not re-run the fetch behind the notice', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    expect(getCourseList).toHaveBeenCalledTimes(1);
+  });
+
+  // Regression: FetchEducationView fetches from a mount effect, so rendering
+  // the notice *instead of* that view unmounts it and the effect re-runs on
+  // remount — fetching again, which surfaces the notice again, forever. The
+  // notice has to go in as a child so the fetching view stays mounted.
+  it('does not refetch in a loop when the notice replaces the loading screen', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+    // Give any re-render a chance to kick off another fetch.
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    expect(getCourseList).toHaveBeenCalledTimes(1);
+    expect(EducationModule.onGetCourseList).toHaveBeenCalledTimes(1);
   });
 });
 

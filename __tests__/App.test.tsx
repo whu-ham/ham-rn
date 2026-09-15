@@ -1,3 +1,5 @@
+import {readFileSync} from 'fs';
+import {join} from 'path';
 import {AppRegistry} from 'react-native';
 
 /**
@@ -15,7 +17,27 @@ const EXPECTED_COMPONENTS = [
   'RNFetchPostGraduateCourseView',
   'RNFetchScoreView',
   'RNScoreCalcView',
+  // Present in every build, including Release: an AppRegistry entry is inert
+  // until a native container asks for it, and the e2e flows run against the
+  // Release app.
+  'RNFetchCourseViewE2E',
+  // One per branch of the course-import state machine. A flow can only reach a
+  // scenario by launching its own entry, so a missing registration means a
+  // branch no e2e flow can cover — and it would only surface as a blank
+  // container at runtime.
+  'RNFetchCourseViewE2EPartial',
+  'RNFetchCourseViewE2EClean',
+  'RNFetchCourseViewE2EAllFailed',
+  'RNFetchCourseViewE2EEmpty',
+  'RNFetchCourseViewE2ELoginFailed',
 ];
+
+/**
+ * Every scenario that has a row in the debug shell, which is how a flow reaches
+ * it. Asserted against `HomeActivity.kt`'s list so the two cannot drift: an
+ * entry registered here but not listed there is unreachable by Maestro.
+ */
+const E2E_SCENARIOS = ['Clean', 'AllFailed', 'Empty', 'LoginFailed'] as const;
 
 describe('app entry registrations', () => {
   beforeEach(() => {
@@ -50,5 +72,56 @@ describe('app entry registrations', () => {
         updateScoreList: expect.any(Function),
       }),
     );
+  });
+
+  /**
+   * The e2e fixture must not be installed by loading the entry point.
+   *
+   * It replaces `global.fetch` for two hostnames — the CAS login and the
+   * timetable endpoint. Installed at module scope it would run at every
+   * production startup, so the real course screen and the headless callable
+   * would be served canned courses instead of the user's timetable, while
+   * score requests still bypassed the real login. Nothing would look broken;
+   * the app would just import the wrong data.
+   *
+   * So the entries install it when they mount, and this pins that: importing
+   * `index.js` — which is what the host app does — has to leave `fetch` alone.
+   */
+  it('does not install the e2e fetch fixture at startup', () => {
+    const pristine = global.fetch;
+    require('../index.js');
+    expect(global.fetch).toBe(pristine);
+    // Belt and braces: the fixture tags what it installs, so a patch that
+    // happened to be swapped in for an identical reference still gets caught.
+    expect(
+      (global.fetch as {__e2eScenario?: string}).__e2eScenario,
+    ).toBeUndefined();
+  });
+
+  it('lists every scenario in the Android shell, so each is tappable', () => {
+    // Two lists have to agree or a scenario becomes unreachable: the
+    // registrations here, and `E2E_SCENARIOS` in HomeActivity.kt. The failure
+    // mode is silent — a flow tapping a missing row fails on its first
+    // assertion, which reads like a broken screen rather than a missing entry.
+    const homeActivity = readFileSync(
+      join(
+        __dirname,
+        '../android/app/src/main/java/com/nowcent/ham/rndebug/HomeActivity.kt',
+      ),
+      'utf8',
+    );
+    E2E_SCENARIOS.forEach(scenario => {
+      expect(homeActivity).toContain(`RNFetchCourseViewE2E${scenario}`);
+    });
+  });
+
+  it('lists every scenario in the iOS shell, so each is tappable', () => {
+    const homeView = readFileSync(
+      join(__dirname, '../ios/ham-rn/HomeView.swift'),
+      'utf8',
+    );
+    E2E_SCENARIOS.forEach(scenario => {
+      expect(homeView).toContain(`RNFetchCourseViewE2E${scenario}`);
+    });
   });
 });

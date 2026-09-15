@@ -4,6 +4,7 @@ import {getCourseList} from '@/business/education/course';
 import {getScoreList, getUserInfo} from '@/business/education/score/api';
 import EducationModule from '@/modules/NativeEducationModule';
 import zh from '@/i18n/zh/translation.json';
+import Log from '@/modules/NativeLog';
 
 /**
  * `educationCallableModule` is the BatchedBridge entry point the host app
@@ -92,6 +93,73 @@ describe('educationCallableModule.updateCourseList', () => {
         '解析失败',
       ),
     );
+  });
+
+  it('logs the courses it could not parse, having no UI to ask in', async () => {
+    const kept = {name: '高等数学', courseId: 'MATH001'};
+    const dropped = {name: '线性代数', courseId: 'MATH002'};
+    (getCourseList as jest.Mock).mockResolvedValue([
+      new Map([
+        [
+          kept,
+          [{week: 1, weekday: 1, classFrom: 1, classTo: 2, color: '#fff'}],
+        ],
+        [dropped, []],
+      ]),
+      {studentId: ''},
+    ]);
+
+    await educationCallableModule.updateCourseList(2026, 1);
+
+    // This entry point runs headless, so it imports what parsed and records
+    // the rest rather than leaving them silently missing.
+    expect(Log.e).toHaveBeenCalledWith(
+      'updateCourseList',
+      expect.stringContaining('线性代数'),
+    );
+    expect(Log.e).not.toHaveBeenCalledWith(
+      'updateCourseList',
+      expect.stringContaining('高等数学'),
+    );
+  });
+
+  it('still imports the courses that did parse', async () => {
+    const kept = {name: '高等数学', courseId: 'MATH001'};
+    const grid = [
+      {week: 1, weekday: 1, classFrom: 1, classTo: 2, color: '#fff'},
+    ];
+    (getCourseList as jest.Mock).mockResolvedValue([
+      new Map([
+        [kept, grid],
+        [{name: '线性代数', courseId: 'MATH002'}, []],
+      ]),
+      {studentId: ''},
+    ]);
+
+    await educationCallableModule.updateCourseList(2026, 1);
+
+    expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+      [kept],
+      [grid],
+      null,
+    );
+  });
+
+  it('does not log anything when every course parsed', async () => {
+    const kept = {name: 'A', courseId: 'A1'};
+    (getCourseList as jest.Mock).mockResolvedValue([
+      new Map([
+        [
+          kept,
+          [{week: 1, weekday: 1, classFrom: 1, classTo: 2, color: '#fff'}],
+        ],
+      ]),
+      {studentId: ''},
+    ]);
+
+    await educationCallableModule.updateCourseList(2026, 1);
+
+    expect(Log.e).not.toHaveBeenCalled();
   });
 
   it('reports empty lists when there are no courses', async () => {

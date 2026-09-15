@@ -1,0 +1,141 @@
+appId: com.nowcent.ham.rndebug
+name: The course-import state machine reaches the outcome each scenario implies
+tags:
+  - course-import
+---
+# Drives every branch of the FetchCourseView state machine end to end and
+# asserts the outcome the host was actually told about.
+#
+# Why this flow exists: the import has six ways to end, and only one of them
+# was reachable from e2e. `ignored-course.yaml` covers "some courses were
+# dropped and the user acknowledged" — but the machine also has to complete
+# with no notice at all, refuse to commit an empty timetable, and report a
+# login failure. Those differ only in what the canned server returns, so each
+# one needs its own AppRegistry entry (see src/e2e/courseFixture.ts) and its
+# own row in the debug shell.
+#
+# The assertion that makes this possible is `courseImportVerdict`, rendered by
+# src/e2e/courseImportProbe.tsx. `EducationModule.onGetCourseList` is the only
+# signal the host gets and it ends in Log.i, so without the probe a flow could
+# see the notice appear but never learn what the import decided — and a flow
+# can read logcat (Maestro has no access to it).
+#
+# Two rules, both load-bearing and both shared with ignored-course.yaml:
+#
+#   - Never assert i18next copy. The language comes from
+#     NativeCommonModule.getLocale(), which reads the device locale, so any
+#     translated string is a flake on a non-English device. The verdict words
+#     ('success' / 'failed') are deliberately not translations.
+#   - Never assert on `testID`. RN's testID does not reach iOS's accessibility
+#     tree. The probe carries `accessibilityLabel` for exactly this reason.
+#
+# Launch note: `clearState: true`, not `stopApp: true`. The terminate hung for
+# ~135s on CI and took the XCUITest driver session down with it. See
+# docs/e2e.md.
+
+# ---------------------------------------------------------------------------
+# Clean import: everything parses, so there is no notice and the import
+# completes on its own. This is the branch that must NOT show a dialog —
+# a notice here would mean the parser is dropping courses it can read.
+# ---------------------------------------------------------------------------
+- launchApp:
+    appId: 'com.nowcent.ham.rndebug'
+    clearState: true
+- extendedWaitUntil:
+    visible: 'E2E Clean'
+    timeout: 60000
+- tapOn: 'E2E Clean'
+
+# Wait for the RN first frame before looking for the probe. The flows that
+# already pass assert on nodes that appear *after* a tap, so they never race the
+# first render; the probe is on screen from the first frame, and Maestro's
+# snapshot can predate it — the verdict was visible in `uiautomator dump` while
+# this very assertion was failing.
+#
+# Matched by `id`, not by text: the loading copy is an i18next string and the
+# app's language comes from the device locale. On Android the RN testID reaches
+# the hierarchy as a resource-id, so `id` works here even though it cannot on
+# iOS (see the iOS flow, which matches by accessibilityLabel instead).
+- extendedWaitUntil:
+    visible:
+      id: 'fetch-course-view-loading'
+    timeout: 60000
+
+# No acknowledgement is possible or needed: the verdict arrives on its own.
+- extendedWaitUntil:
+    visible:
+      id: 'course-import-verdict'
+    timeout: 60000
+- assertVisible: 'success'
+- assertNotVisible: 'ignoredCourseAcknowledge'
+
+# ---------------------------------------------------------------------------
+# Total parse failure: nothing parses, so the notice appears — and pressing
+# the button must report an error rather than commit an empty timetable, which
+# a replace-semantics host would apply by wiping the existing one.
+# ---------------------------------------------------------------------------
+- killApp:
+    appId: 'com.nowcent.ham.rndebug'
+- launchApp:
+    appId: 'com.nowcent.ham.rndebug'
+    clearState: true
+- extendedWaitUntil:
+    visible: 'E2E AllFailed'
+    timeout: 60000
+- tapOn: 'E2E AllFailed'
+
+- extendedWaitUntil:
+    visible: 'ignoredCourseAcknowledge'
+    timeout: 60000
+# Nothing has been reported yet: the import waits for the acknowledgement.
+- assertNotVisible: 'success'
+- assertNotVisible: 'failed'
+
+- tapOn: 'ignoredCourseAcknowledge'
+- extendedWaitUntil:
+    visible: 'failed'
+    timeout: 60000
+
+# ---------------------------------------------------------------------------
+# Empty schedule: no courses at all, so the import completes with no notice
+# and an empty timetable. Distinct from AllFailed: an empty payload is a
+# successful import of nothing, not a failure.
+# ---------------------------------------------------------------------------
+- killApp:
+    appId: 'com.nowcent.ham.rndebug'
+- launchApp:
+    appId: 'com.nowcent.ham.rndebug'
+    clearState: true
+- extendedWaitUntil:
+    visible: 'E2E Empty'
+    timeout: 60000
+- tapOn: 'E2E Empty'
+
+- extendedWaitUntil:
+    visible: 'success'
+    timeout: 60000
+- assertNotVisible: 'ignoredCourseAcknowledge'
+
+# ---------------------------------------------------------------------------
+# Login failure: CAS answers with a page that is not a success page, so
+# loginEducation throws before any courses are requested. The host must be
+# told it failed — and critically, must NOT be told an empty timetable
+# succeeded, which is what a swallowed error would look like.
+# ---------------------------------------------------------------------------
+- killApp:
+    appId: 'com.nowcent.ham.rndebug'
+- launchApp:
+    appId: 'com.nowcent.ham.rndebug'
+    clearState: true
+- extendedWaitUntil:
+    visible: 'E2E LoginFailed'
+    timeout: 60000
+- tapOn: 'E2E LoginFailed'
+
+- extendedWaitUntil:
+    visible: 'failed'
+    timeout: 60000
+# The failure happened before any course was parsed, so there is nothing to
+# acknowledge and no notice to show.
+- assertNotVisible: 'ignoredCourseAcknowledge'
+- assertNotVisible: 'success'

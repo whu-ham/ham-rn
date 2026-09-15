@@ -20,12 +20,21 @@
   },
   "education": {
     "course_fetch_failed_with_reason": "Failed to fetch courses! {{reason}}",
+    "ignored_course_all_failed_ack": "No course could be parsed, so nothing was imported. Your timetable is unchanged.",
+    "ignored_course_ok": "Continue",
+    "ignored_course_reason": "Unrecognised week schedule \"{{weekText}}\"",
+    "ignored_course_reason_missing": "The education system provided no week schedule",
+    "ignored_course_summary": "The week schedule of these {{count}} course(s) could not be read, so they will be missing from the imported timetable:",
+    "ignored_course_summary_all_failed": "None of the {{count}} course(s) could be read — the education system's format may have changed. Nothing will be imported, so your existing timetable is left intact:",
+    "ignored_course_title": "Some courses could not be imported",
+    "import_cancelled": "Import cancelled",
     "loading": "Loading",
     "login_failed_full": "Education system login failed! {{reason}}",
     "login_failed_reason": "Try re-logging in via \"Me -> Portal Login\".",
     "postgraduate_not_supported": "Not supported yet",
     "score_fetch_failed_with_reason": "Failed to fetch scores! {{reason}}",
-    "semester_not_set": "Semester start date not set"
+    "semester_not_set": "Semester start date not set",
+    "unnamed_course": "Untitled course"
   },
   "scorecalc": {
     "current": {

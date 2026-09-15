@@ -75,7 +75,11 @@ const parseResponse = ({
     // A course with no parsable weeks stays in the map with an empty grid
     // list; parseResponse keeps reporting what the system sent. Dropping it
     // is toNativeCoursePairing's job, at the native boundary.
-    const courseGridList = getEmptyCourseGridWithWeek(data.zcd ?? '');
+    const rawWeekText = data.zcd ?? '';
+    const courseGridList = getEmptyCourseGridWithWeek(rawWeekText);
+    if (courseGridList.length === 0) {
+      course.rawWeekText = rawWeekText;
+    }
 
     const weekFrom = Math.min(...courseGridList.map(grid => grid.week));
     const weekTo = Math.max(...courseGridList.map(grid => grid.week));
@@ -197,19 +201,24 @@ const handleSingleWeekTime = (
 
 /**
  * Flattens the parse result into the two parallel arrays the native side
- * expects.
+ * expects, reporting anything it had to leave behind.
  *
  * Courses with an empty grid list must be filtered out: when
  * `CourseGridDao.insert` receives an empty array, SQLite.swift's
  * `insertMany([])` degrades to `INSERT INTO course_grid DEFAULT VALUES`,
  * which violates the NOT NULL constraint on course_table_id and aborts the
  * whole save, leaving the timetable empty.
+ *
+ * The dropped courses are returned alongside rather than discarded, so the
+ * caller can surface them — a silently truncated timetable looks like an
+ * empty semester to the user.
  */
 const toNativeCoursePairing = (courseListResult: {
   entries(): IterableIterator<[CourseEntity, CourseGridEntity[]]>;
-}): [CourseEntity[], CourseGridEntity[][]] => {
+}): [CourseEntity[], CourseGridEntity[][], CourseEntity[]] => {
   const nativeCourseList: CourseEntity[] = [];
   const nativeCourseGridList: CourseGridEntity[][] = [];
+  const ignoredCourseList: CourseEntity[] = [];
   for (let entry of courseListResult.entries()) {
     const [course, courseGridList] = entry;
     if (courseGridList.length === 0) {
@@ -217,12 +226,18 @@ const toNativeCoursePairing = (courseListResult: {
         'toNativeCoursePairing',
         `dropped empty-grid course: name=${course.name}`,
       );
+      ignoredCourseList.push(course);
       continue;
     }
-    nativeCourseList.push(course);
+    // `rawWeekText` exists only to explain a course to the user. The native
+    // entity has no such column, and an unexpected key is one the host app
+    // would have to ignore — so drop it at the boundary rather than there.
+    const nativeCourse = {...course};
+    delete nativeCourse.rawWeekText;
+    nativeCourseList.push(nativeCourse);
     nativeCourseGridList.push(courseGridList);
   }
-  return [nativeCourseList, nativeCourseGridList];
+  return [nativeCourseList, nativeCourseGridList, ignoredCourseList];
 };
 
 export {parseResponse, toNativeCoursePairing};

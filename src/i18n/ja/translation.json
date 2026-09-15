@@ -20,12 +20,21 @@
   },
   "education": {
     "course_fetch_failed_with_reason": "授業の取得に失敗しました！{{reason}}",
+    "ignored_course_all_failed_ack": "すべての授業を解釈できなかったため、取り込みませんでした。時間割は変更されていません。",
+    "ignored_course_ok": "続ける",
+    "ignored_course_reason": "時間割「{{weekText}}」を解釈できませんでした",
+    "ignored_course_reason_missing": "教務システムが時間割を提供していません",
+    "ignored_course_summary": "以下の {{count}} 件の授業は時間割を解釈できませんでした。取り込んでも時間割には表示されません:",
+    "ignored_course_summary_all_failed": "{{count}} 件すべての授業で時間割を解釈できませんでした。教務システムの形式が変わった可能性があります。既存の時間割を消さないよう、今回は取り込みません:",
+    "ignored_course_title": "一部の授業を取り込めません",
+    "import_cancelled": "取り込みを中止しました",
     "loading": "読み込み中",
     "login_failed_full": "教務システムのログインに失敗しました！{{reason}}",
     "login_failed_reason": "「マイ -> ポータルログイン」から再ログインしてみてください。",
     "postgraduate_not_supported": "まだサポートされていません",
     "score_fetch_failed_with_reason": "成績の取得に失敗しました！{{reason}}",
-    "semester_not_set": "学期開始日が設定されていません"
+    "semester_not_set": "学期開始日が設定されていません",
+    "unnamed_course": "名称未設定の授業"
   },
   "scorecalc": {
     "current": {

@@ -11,31 +11,76 @@ const TAG = 'Request';
 
 /**
  * xlog formats every entry into a 16KB stack buffer and drops the entry
- * outright once less than 5KB is left in it (see log_formater in
- * mars/xlog/src/formater.cc), so a long line has to be split by the caller
- * rather than handed over whole. 4KB keeps each chunk well clear of that 5KB
- * guard and still leaves room for the time/tag/file/function prefix that xlog
- * prepends to every line.
+ * outright once it no longer fits (see the `len < 16 * 1024` assertion in
+ * mars/xlog/src/formater.cc, confirmed against the linked mars framework), so
+ * a long body has to be split by the caller rather than handed over whole.
+ * 4KB keeps each chunk well clear of that guard and still leaves room for the
+ * time/tag/file/function prefix xlog prepends to every line.
  */
 const CHUNK_SIZE = 4 * 1024;
 
+/**
+ * Splits on a line boundary where one is available.
+ *
+ * Slicing at a fixed offset is simpler and stays inside the budget, but it
+ * cuts through whatever happens to straddle the 4KB mark — mid-URL, mid-token,
+ * mid-JSON-string. Reading the pieces back is guesswork, and nothing marks
+ * where the break was. So prefer the last newline inside the window and only
+ * fall back to a hard cut for a single line longer than the whole budget,
+ * which cannot be broken any other way.
+ */
 const chunk = (text: string): string[] => {
   if (text.length === 0) {
     return [''];
   }
   const parts: string[] = [];
-  for (let i = 0; i < text.length; i += CHUNK_SIZE) {
-    parts.push(text.slice(i, i + CHUNK_SIZE));
+  let start = 0;
+  while (start < text.length) {
+    const window = text.slice(start, start + CHUNK_SIZE);
+    if (start + window.length < text.length) {
+      // More text follows, so try to end this chunk where a line ends.
+      const lastBreak = window.lastIndexOf('\n');
+      if (lastBreak !== -1) {
+        parts.push(window.slice(0, lastBreak + 1));
+        start += lastBreak + 1;
+        continue;
+      }
+    }
+    parts.push(window);
+    start += window.length;
   }
   return parts;
 };
 
-/** Writes a line in xlog-sized chunks, suffixing each one with (n/total). */
-const logChunked = (level: 'i' | 'e', prefix: string, body: string): void => {
+/**
+ * Writes a long body as several log entries, each ending in a newline.
+ *
+ * Two things are going on, and they are separate:
+ *
+ *   - `chunk` cuts the text into pieces that fit xlog's buffer, preferring an
+ *     existing line boundary so a line is not split in half. It is lossless:
+ *     `parts.join('')` reproduces the input exactly.
+ *   - This appends the newline that makes each piece its own line in the log.
+ *     A chunk that already ends at a line boundary keeps its single newline
+ *     rather than gaining a blank one.
+ *
+ * The newline is added here rather than in `chunk` so the splitter stays a pure
+ * operation on the text and the formatting lives where the log line is built.
+ *
+ * `tag` defaults to this module's own; callers logging under their own tag pass
+ * it so the pieces reassemble under the same one.
+ */
+const logChunked = (
+  level: 'i' | 'e',
+  prefix: string,
+  body: string,
+  tag: string = TAG,
+): void => {
   const parts = chunk(body);
   parts.forEach((part, index) => {
     const counter = parts.length > 1 ? ` (${index + 1}/${parts.length})` : '';
-    Log[level](TAG, `${prefix}${counter}: ${part}`);
+    const terminator = part.endsWith('\n') ? '' : '\n';
+    Log[level](tag, `${prefix}${counter}: ${part}${terminator}`);
   });
 };
 
@@ -131,4 +176,4 @@ const requestPost = ({
   });
 };
 
-export {requestGet, requestPost};
+export {requestGet, requestPost, chunk, logChunked};

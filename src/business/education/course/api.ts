@@ -1,6 +1,5 @@
 import {parseResponse} from './parser';
-import {requestPost} from '@/utils/request/request';
-import Log from '@/modules/NativeLog';
+import {logChunked, requestPost} from '@/utils/request/request';
 
 /**
  * @author orangeboyChen
@@ -44,7 +43,10 @@ const getCourseList = async ({
   });
   const rawStr = await response.text();
   const str = rawStr.replaceAll(' ', '');
-  Log.i('getCourseList', `response: ${str}`);
+  // A full-semester timetable runs past the 16KB buffer xlog formats into,
+  // and an oversized entry is dropped whole — so this is where the response
+  // used to go missing. Split it the way the request layer does.
+  logChunked('i', 'response', str, 'getCourseList');
   const json = JSON.parse(str);
   return parseResponse({
     json,

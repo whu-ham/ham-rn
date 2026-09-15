@@ -12,6 +12,7 @@ import type {
 } from '@/business/education/score/type.ts';
 import {getUserInfo} from '@/business/education/score/api';
 import i18n from '@/i18n/i18n';
+import Log from '@/modules/NativeLog';
 
 /**
  * @author orangeboyChen
@@ -52,8 +53,19 @@ const updateCourseList = async (year: number, semester: number) => {
     return;
   }
 
-  const [nativeCourseList, nativeCourseGridList] =
+  const [nativeCourseList, nativeCourseGridList, ignoredCourseList] =
     toNativeCoursePairing(courseListResult);
+  // This entry point runs headless on the BatchedBridge, with no UI to ask the
+  // user in, so it imports what parsed and only records the rest. The
+  // RNFetchCourseView screen is the path that can prompt.
+  if (ignoredCourseList.length > 0) {
+    Log.e(
+      'updateCourseList',
+      `ignored ${ignoredCourseList.length} unparsable course(s): ${ignoredCourseList
+        .map(course => course.name || course.courseId)
+        .join(', ')}`,
+    );
+  }
   EducationModule.onGetCourseList(nativeCourseList, nativeCourseGridList, null);
 };
 

@@ -20,12 +20,21 @@
   },
   "education": {
     "course_fetch_failed_with_reason": "获取课程失败! {{reason}}",
+    "ignored_course_all_failed_ack": "全部课程均无法解析,未导入。课表保持原样。",
+    "ignored_course_ok": "继续导入",
+    "ignored_course_reason": "上课周次“{{weekText}}”无法识别",
+    "ignored_course_reason_missing": "教务系统未提供上课周次",
+    "ignored_course_summary": "以下 {{count}} 门课程无法解析上课时间,导入后课表中将不会出现它们:",
+    "ignored_course_summary_all_failed": "全部 {{count}} 门课程都无法解析上课时间,可能是教务系统的格式有变化。为避免清空已有课表,本次不会导入:",
+    "ignored_course_title": "部分课程无法导入",
+    "import_cancelled": "已取消导入",
     "loading": "正在加载",
     "login_failed_full": "教务系统登录失败! {{reason}}",
     "login_failed_reason": "试试前往“我的->登录信息门户”重新登录信息门户呢~",
     "postgraduate_not_supported": "暂未支持",
     "score_fetch_failed_with_reason": "获取成绩失败! {{reason}}",
-    "semester_not_set": "未设置开学日期"
+    "semester_not_set": "未设置开学日期",
+    "unnamed_course": "未命名课程"
   },
   "scorecalc": {
     "current": {

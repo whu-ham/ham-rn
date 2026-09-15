@@ -98,21 +98,29 @@ workflows. If you ever switch the emulator to `arm64-v8a`, drop the override.
 
 ## Running
 
-CI runs only the scorecalc flow, on both platforms. See
-[What is worth testing](#what-is-worth-testing) for why smoke is excluded, and
+CI runs every flow in `.maestro/{ios,android}/` on both platforms:
+
+| Flow | What it covers |
+|---|---|
+| `scorecalc.yaml` | The only screen with real, stable content — the bundled script list. |
+| `ignored-course.yaml` | The course-import path, including the ignored-course notice. |
+| `course-import-outcomes.yaml` | Every other way the import can end: clean, all-failed, empty, login failure. |
+| `smoke.yaml` | Each registered entry launches with the embedded bundle. |
+
+See [Testing the course flow](#testing-the-course-flow) for how the second and
+third ones work without credentials, and
 [Known instability](#known-instability-across-repeated-runs) for what to expect
 if you run flows repeatedly by hand.
 
 ```bash
 # iOS (simulator must already be running, Release app already installed)
-maestro test .maestro/ios/scorecalc.yaml
+maestro test .maestro/ios/
 
 # Android (emulator must already be running, release APK already installed)
-maestro test .maestro/android/scorecalc.yaml
+maestro test .maestro/android/
 
-# The whole directory, if you want the smoke flows too (expect smoke to fail —
-# see "Why there is no 'every screen boots' smoke flow")
-maestro test .maestro/ios/
+# A single flow
+maestro test .maestro/ios/ignored-course.yaml
 ```
 
 Pass `--device <udid>` to target a specific simulator; without it Maestro picks
@@ -199,27 +207,98 @@ on it working. (CI no longer runs this step at all.)
 
 | Screen | Worth an e2e flow? | Why |
 |---|---|---|
-| `RNScoreCalcView` | **Yes** | The only screen with real UI: script list, select/upgrade buttons, and the developer debug card. Its two script titles are hardcoded Chinese, so the assertions hold regardless of locale. This is the only flow CI runs. |
+| `RNScoreCalcView` | **Yes** | The only screen with real UI: script list, select/upgrade buttons, and the developer debug card. Its two script titles are hardcoded Chinese, so the assertions hold regardless of locale. |
+| `RNFetchCourseViewE2E` | **Yes** | Drives the course-import path with a canned payload, including the ignored-course notice, and every other branch of the same state machine via its `...E2E<Scenario>` siblings. See [Testing the course flow](#testing-the-course-flow). |
 | `RNCasMobileLoginView` | Partially | Loads `cas.whu.edu.cn` in a WebView. Without test credentials you can only assert that the WebView loads, not that login works. |
-| `RNFetchCourseView` | No | Renders a spinner, then calls back into native. There is no UI to assert beyond "it did not crash" — and see the note below about why even that does not work. |
-| `RNFetchScoreView` | No | Same as above. |
+| `RNFetchCourseView` | No | Renders a spinner, then calls back into native. There is no UI to assert beyond "it did not crash". Its e2e-named sibling covers the behaviour. |
+| `RNFetchScoreView` | No | Renders a spinner, then calls back into native. |
 | `RNCommon` | No | Renders an empty `<View />`; it only logs and subscribes to native events. |
 
-### Why there is no "every screen boots" smoke flow
+### Testing the course flow
 
-`smoke.yaml` exists on both platforms but is **not** wired into CI, and cannot
-be until the debug shell changes.
+The flows have no credentials for `cas.whu.edu.cn` and cannot fabricate a CAS
+session, so they cannot drive the real fetch. They also cannot intercept XHR —
+Maestro has no network stubbing — so the fixture has to live inside the bundle.
 
-It taps into each registered screen, presses back, and asserts the shell's list
-is still there. That assertion fails: after pushing any RN screen and going
-back, the native list renders empty. This was reproduced with `RNCommon` alone,
-which makes no network calls at all, so it is not a network or login problem —
-the RN container does not come back cleanly after being popped.
+`RNFetchCourseViewE2E` (registered in `index.js`, reachable from both debug
+shells) installs `src/e2e/courseFixture.ts`, which patches `global.fetch` to
+answer just two URLs and delegates everything else to the original. Every other
+step is production code: real `loginEducation`, real `getCourseList`, real
+`parseResponse` and `toNativeCoursePairing`, real notice. The fixture's payload
+uses the education system's own shapes, including a week string the parser
+cannot read (`全周`) and a course with no schedule at all — the two cases the
+notice exists for.
 
-If you run the flows by hand and want the smoke check anyway, run it on its own
-after a clean install, and expect it to fail on the shell-survives assertion.
-Fixing it means changing how the shell hosts RN screens, which is out of scope
-for the e2e setup.
+#### One entry per branch
+
+The import has six ways to end and they are distinguished **only** by what the
+server returns, so a flow cannot reach them by interacting with the UI — it has
+to launch a different canned payload. That means one AppRegistry entry per
+branch, each with its own row in the debug shell:
+
+| Entry | Payload | The branch it puts the machine in |
+|---|---|---|
+| `RNFetchCourseViewE2E` | 2 parse, 20 do not | Notice appears; acknowledging commits a timetable. |
+| `...E2EClean` | 2 parse, 0 do not | No notice; the import completes on its own. |
+| `...E2EAllFailed` | 0 parse, 20 do not | Notice appears; acknowledging reports an error. |
+| `...E2EEmpty` | no courses at all | No notice; an empty timetable is a success. |
+| `...E2ELoginFailed` | CAS answers without the success marker | Fails before any course is parsed. |
+
+`src/e2e/courseImportEntries.tsx` builds them, and `__tests__/App.test.tsx`
+asserts that each is registered **and** listed in both `HomeView.swift` and
+`HomeActivity.kt` — a scenario in one list but not the other is unreachable by
+Maestro, and the failure is a blank container rather than an error.
+
+#### Seeing what the host was told
+
+`EducationModule.onGetCourseList` is the only signal the host gets, and in the
+debug shell it ends in `Log.i` / `NSLog` — which Maestro cannot read. So the
+e2e entries also mount `src/e2e/courseImportProbe.tsx`, which wraps that module
+method, records what it was called with, and renders `success` or `failed`.
+Without it a flow could see the notice appear but never learn what the import
+decided, and the four non-notice branches would be indistinguishable.
+
+The verdict words are deliberately not i18next copy — see the rules below.
+
+#### The probe sits below the course screen, and that is load-bearing
+
+At the top of the screen the probe rendered correctly and
+`adb shell uiautomator dump` listed it, but Maestro still judged it not
+visible: on this device the status bar occupies y 0–63 and the probe landed at
+y 10–47, i.e. underneath it. Maestro treats an occluded node as absent;
+`uiautomator dump` does not, which is why the two disagreed and why the symptom
+looked like the import never reported anything.
+
+If you move the probe, keep it clear of the status bar and of the notice's own
+layout.
+
+Two rules for assertions in these flows, both verified rather than assumed:
+
+- **Never select by `testID`.** RN's `testID` does not reach iOS's accessibility
+  tree, so Maestro cannot see it. Anything a flow must select needs an
+  `accessibilityLabel`; the dialog and its button carry them for this reason.
+- **Never assert i18next copy.** The language comes from
+  `NativeCommonModule.getLocale()`, which reads the device locale and ignores
+  `defaults write -g AppleLanguages`. The flows assert on course names, which
+  come from the fixture, not from a translation.
+
+`__tests__/e2e/courseFixture.test.ts` pins the fixture's shape, because a
+fixture that stopped producing ignored courses would leave the flow asserting
+nothing while still passing.
+
+### Why smoke does not navigate back
+
+`smoke.yaml` used to tap into each registered screen, press back, and assert the
+shell's list was still there. That assertion failed, and the flow could not go
+in CI: after pushing any RN screen and going back, the native list renders
+empty. This was reproduced with `RNCommon` alone, which makes no network calls
+at all, so it is not a network or login problem — the RN container does not come
+back cleanly after being popped.
+
+So the flow reaches each screen with a fresh `launchApp` instead of navigating
+back. That keeps the actual check — the entry boots with the embedded bundle —
+without depending on a shell behaviour that is broken. Fixing the shell is the
+real fix, and is still outstanding.
 
 Deep behavioural coverage belongs in the Jest suite (`pnpm test`), which can
 mock the native modules — e2e cannot. Use e2e for "the bundle boots and the
@@ -241,11 +320,29 @@ single run: 5/5 COMPLETED
 ```
 
 This does **not** affect CI: each job runs exactly once on a fresh runner,
-which is the settled-device case. Both e2e jobs pass there (iOS ~16m,
-Android ~9m), so they gate the merge. `continue-on-error` was set initially
+which is the settled-device case. `continue-on-error` was set initially
 because of the local numbers above; it was removed once CI proved stable. If
 the jobs start failing intermittently on CI, investigate rather than
 re-adding `continue-on-error` — a non-blocking job is one nobody has to act on.
+
+### The XCUITest driver sometimes never starts
+
+A distinct failure mode, seen once on CI: Maestro logs
+
+```
+[Failed] Perform XCUITest driver status check on <udid>,
+exception: java.net.ConnectException: Failed to connect to /127.0.0.1:<port>
+```
+
+repeated for ~2 minutes and then the job fails. **No flow runs at all** — there
+are no `[Passed]`/`[Failed]` lines for individual flows, and the Maestro
+artifact is uploaded by the `if: failure()` step rather than by a real
+assertion. The driver never came up, so this says nothing about the app.
+
+It is infrastructure, not a regression: re-running the same job on the same
+commit passed with 3/3 flows. Check whether any flow ran before reading it as a
+product failure — a log with no per-flow results is a driver problem, not a
+broken screen.
 
 Two failure shapes when running locally, both environment-level, not flow bugs:
 

@@ -23,6 +23,20 @@ struct HomeView: View {
         RNDemoItem(title: "RNFetchScoreView", moduleName: "RNFetchScoreView"),
         RNDemoItem(title: "RNScoreCalcView", moduleName: "RNScoreCalcView"),
         RNDemoItem(title: "RNCommon", moduleName: "RNCommon"),
+        RNDemoItem(
+            title: "RNFetchCourseViewE2E", moduleName: "RNFetchCourseViewE2E"),
+        // One row per branch of the course-import state machine. The scenarios
+        // differ only in what the canned server returns, so a flow can only
+        // reach one by launching its own entry; see src/e2e/courseFixture.ts.
+        RNDemoItem(
+            title: "E2E Clean", moduleName: "RNFetchCourseViewE2EClean"),
+        RNDemoItem(
+            title: "E2E AllFailed", moduleName: "RNFetchCourseViewE2EAllFailed"),
+        RNDemoItem(
+            title: "E2E Empty", moduleName: "RNFetchCourseViewE2EEmpty"),
+        RNDemoItem(
+            title: "E2E LoginFailed",
+            moduleName: "RNFetchCourseViewE2ELoginFailed"),
     ]
 
     var body: some View {

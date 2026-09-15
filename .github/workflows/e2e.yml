@@ -113,21 +113,22 @@ jobs:
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
-      # Only the scorecalc flow, not the whole directory. That flow is the one
-      # with real UI to assert on (see docs/e2e.md "What is worth testing"),
-      # and it is verified to pass against this Release build.
+      # The whole directory, now that every flow in it can pass:
       #
-      # smoke.yaml is deliberately excluded: it taps into each RN screen and
-      # asserts the shell survives the way back out, but the shell does NOT
-      # survive — after pushing any RN screen and pressing back, the native
-      # list renders empty (reproduced with RNCommon, which makes no network
-      # calls at all, so it is not a network problem). Fixing that is a change
-      # to the debug shell, not to this workflow; until then the flow cannot go
-      # in CI. Recorded in docs/e2e.md.
+      #   - scorecalc.yaml asserts the only screen with real, stable content.
+      #   - ignored-course.yaml drives the course-import path with a canned
+      #     payload (src/e2e/courseFixture.ts) and asserts the notice names
+      #     each dropped course. It needs no credentials.
+      #   - smoke.yaml launches each registered entry directly. It used to
+      #     navigate back to the shell afterwards and assert the shell was
+      #     still there, which failed: the debug shell renders empty after a
+      #     pop. Reaching each screen with a fresh launch keeps the check —
+      #     the entry boots with the embedded bundle — without depending on a
+      #     shell behaviour that is broken. See docs/e2e.md.
       - name: Run iOS flows
         run: |
           maestro test --device "${{ steps.simulator.outputs.udid }}" \
-            .maestro/ios/scorecalc.yaml
+            .maestro/ios/
 
       - name: Upload Maestro artifacts
         if: failure()
@@ -227,7 +228,7 @@ jobs:
           script: |
             adb logcat -c
             adb install -r android/app/build/outputs/apk/release/app-release.apk
-            maestro test .maestro/android/scorecalc.yaml
+            maestro test .maestro/android/
 
       # No separate logcat step: Maestro already writes device-logcat.txt and
       # crash-report.txt into ~/.maestro/tests/, which this step uploads. An

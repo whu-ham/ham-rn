@@ -75,7 +75,14 @@ const darkColor: ThemeColor = {
   ham_lightBlue: '#010D18',
 };
 
-const useColor = () => {
+/**
+ * Resolves the palette for the current scheme and follows the system setting.
+ *
+ * Read through `Appearance.getColorScheme()` rather than RN's `useColorScheme`
+ * so the initial value and the subscription agree — and so a test can pin the
+ * scheme the way every other test in the suite does.
+ */
+const useColor = (): ThemeColor => {
   const [color, setColor] = useState<ThemeColor>(
     Appearance.getColorScheme() === 'dark' ? darkColor : lightColor,
   );
@@ -85,7 +92,11 @@ const useColor = () => {
     >[0] = prep => {
       setColor(prep.colorScheme === 'dark' ? darkColor : lightColor);
     };
-    Appearance.addChangeListener(changeListener);
+    // The subscription has to be torn down with the component. Without the
+    // `remove()` every mount leaks one listener on the shared native emitter,
+    // so each remount re-renders every themed view once more per change.
+    const subscription = Appearance.addChangeListener(changeListener);
+    return () => subscription.remove();
   }, []);
   return color;
 };

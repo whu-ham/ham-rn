@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,6 +22,18 @@ import com.nowcent.ham.rndebug.component.common.RNCommon
 import com.nowcent.ham.rndebug.component.education.RNFetchCourseView
 import com.nowcent.ham.rndebug.component.education.RNFetchScoreView
 import com.nowcent.ham.rndebug.component.education.RNScoreCalcView
+
+/**
+ * The course-import state-machine branches, as (label, AppRegistry name) pairs.
+ * Must stay in step with `scenarios` in src/e2e/courseImportEntries.tsx — a
+ * scenario listed here but not registered there launches an empty container.
+ */
+private val E2E_SCENARIOS = listOf(
+    "E2E Clean" to "RNFetchCourseViewE2EClean",
+    "E2E AllFailed" to "RNFetchCourseViewE2EAllFailed",
+    "E2E Empty" to "RNFetchCourseViewE2EEmpty",
+    "E2E LoginFailed" to "RNFetchCourseViewE2ELoginFailed",
+)
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,6 +95,26 @@ private fun HomeView() {
                                 Text("RNCommon")
                             }
                         }
+
+                        item {
+                            TextButton(onClick = {
+                                navController.navigate("RNFetchCourseViewE2E")
+                            }) {
+                                Text("RNFetchCourseViewE2E")
+                            }
+                        }
+
+                        // One row per branch of the course-import state
+                        // machine. The scenarios differ only in what the canned
+                        // server returns, so a flow can only reach one by
+                        // launching its own entry; see src/e2e/courseFixture.ts.
+                        items(E2E_SCENARIOS) { (label, moduleName) ->
+                            TextButton(onClick = {
+                                navController.navigate(moduleName)
+                            }) {
+                                Text(label)
+                            }
+                        }
                     }
                 }
                 composable("RNCasMobileLogin") {
@@ -98,6 +131,17 @@ private fun HomeView() {
                 }
                 composable("RNCommon") {
                     RNCommon()
+                }
+                composable("RNFetchCourseViewE2E") {
+                    RNContainer("RNFetchCourseViewE2E")
+                }
+                // Every scenario shares one destination: the entry name is all
+                // that distinguishes them, and the fixture inside the bundle is
+                // what actually differs.
+                E2E_SCENARIOS.forEach { (_, moduleName) ->
+                    composable(moduleName) {
+                        RNContainer(moduleName)
+                    }
                 }
             }
         }
