@@ -1,32 +1,16 @@
 import React from 'react';
 import {fireEvent, render, screen} from '@testing-library/react-native';
-import IgnoredCourseDialog from '@/components/education/course/IgnoredCourseDialog';
+import IgnoredCourseNotice from '@/components/education/course/IgnoredCourseNotice';
 import zh from '@/i18n/zh/translation.json';
 import type {CourseEntity} from '@/business/education/course/type.ts';
 
-// Mocked here rather than in jest.setup.ts: only this component registers a
-// back handler, and a global mock would hide the real addEventListener from
-// every other suite. The mock records handlers so tests can invoke them.
-const backHandlers: Array<() => boolean> = [];
-const backSubscriptions: Array<{remove: jest.Mock}> = [];
-jest.mock('react-native/Libraries/Utilities/BackHandler', () => ({
-  __esModule: true,
-  default: {
-    addEventListener: jest.fn((_event: string, handler: () => boolean) => {
-      backHandlers.push(handler);
-      // One shared subscription per call, so a test can assert on the exact
-      // `remove` the component will call on unmount.
-      const subscription = {remove: jest.fn()};
-      backSubscriptions.push(subscription);
-      return subscription;
-    }),
-  },
-}));
-
 /**
- * The dialog is a notice, not a choice: it names each dropped course and says
- * why, and the single button acknowledges it. The user cannot repair a week
- * string the education system sent, so there is nothing to decide.
+ * The notice is not a choice: it names each dropped course and says why, and
+ * the single button acknowledges it. The user cannot repair a week string the
+ * education system sent, so there is nothing to decide.
+ *
+ * It renders inline, filling the host's sheet, rather than as a modal — so
+ * unlike a dialog it does not intercept the hardware back button.
  */
 const course = (
   name: string,
@@ -55,7 +39,7 @@ const renderDialog = async (
 ) => {
   const onAcknowledge = overrides.onAcknowledge ?? jest.fn();
   const utils = await render(
-    <IgnoredCourseDialog
+    <IgnoredCourseNotice
       testID="ignored"
       courses={courses}
       canImport={overrides.canImport ?? true}
@@ -65,12 +49,7 @@ const renderDialog = async (
   return {...utils, onAcknowledge};
 };
 
-describe('IgnoredCourseDialog', () => {
-  beforeEach(() => {
-    backHandlers.length = 0;
-    backSubscriptions.length = 0;
-  });
-
+describe('IgnoredCourseNotice', () => {
   it('renders the localized title', async () => {
     await renderDialog([course('高等数学', 'MATH001')]);
     expect(screen.getByTestId('ignored-title')).toHaveTextContent(
@@ -193,30 +172,9 @@ describe('IgnoredCourseDialog', () => {
     expect(screen.getByTestId('ignored-item-name-0')).toHaveTextContent('A');
   });
 
-  it('treats the hardware back button as an acknowledgement', async () => {
-    const onAcknowledge = jest.fn();
-    await renderDialog([course('A', 'A1')], {onAcknowledge});
-
-    // Invoke the handler the component actually registered rather than just
-    // asserting the spy fired: the spy would pass even with no subscription.
-    expect(backHandlers).toHaveLength(1);
-    expect(backHandlers[0]()).toBe(true);
-    expect(onAcknowledge).toHaveBeenCalledTimes(1);
-  });
-
-  it('stops handling the back button once unmounted', async () => {
-    const {unmount} = await renderDialog([course('A', 'A1')]);
-    expect(backSubscriptions).toHaveLength(1);
-
-    // RNTL v14's unmount is async like render; without the await no effect
-    // cleanup runs and this assertion would fail for the wrong reason.
-    await unmount();
-    expect(backSubscriptions[0].remove).toHaveBeenCalled();
-  });
-
   it('omits testIDs entirely when no testID prop is given', async () => {
     await render(
-      <IgnoredCourseDialog
+      <IgnoredCourseNotice
         courses={[course('A', 'A1')]}
         canImport
         onAcknowledge={jest.fn()}

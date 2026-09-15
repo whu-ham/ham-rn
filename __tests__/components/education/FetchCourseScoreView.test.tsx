@@ -473,6 +473,30 @@ describe('FetchCourseView ignored-course notice', () => {
     );
     expect(getCourseList).toHaveBeenCalledTimes(1);
   });
+
+  // Regression: FetchEducationView fetches from a mount effect, so rendering
+  // the notice *instead of* that view unmounts it and the effect re-runs on
+  // remount — fetching again, which surfaces the notice again, forever. The
+  // notice has to go in as a child so the fetching view stays mounted.
+  it('does not refetch in a loop when the notice replaces the loading screen', async () => {
+    await renderWith(
+      new Map([
+        [course('A'), grid(1)],
+        [course('B'), []],
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('fetch-course-view-ignored')).toBeTruthy(),
+    );
+    await fireEvent.press(
+      screen.getByTestId('fetch-course-view-ignored-confirm'),
+    );
+    // Give any re-render a chance to kick off another fetch.
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    expect(getCourseList).toHaveBeenCalledTimes(1);
+    expect(EducationModule.onGetCourseList).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('FetchScoreView', () => {

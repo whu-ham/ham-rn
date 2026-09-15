@@ -15,7 +15,7 @@ import {loginEducation} from '@/business/education';
 import {generateValidate} from '@/business/education/api';
 import i18n from '@/i18n/i18n';
 import FetchEducationView from '@/components/education/FetchEducationView';
-import IgnoredCourseDialog from '@/components/education/course/IgnoredCourseDialog';
+import IgnoredCourseNotice from '@/components/education/course/IgnoredCourseNotice';
 
 /** A parsed timetable waiting on the user to accept the dropped courses. */
 interface PendingCourseImport {
@@ -80,7 +80,7 @@ const FetchCourseView = (): React.ReactElement => {
   );
 
   /**
-   * Runs the import the dialog was warning about. The host blocks on a
+   * Runs the import the notice was warning about. The host blocks on a
    * callback and tears this screen down when it arrives, so the import has to
    * happen on acknowledgement — calling it any earlier would mean the user
    * never sees the notice.
@@ -100,24 +100,27 @@ const FetchCourseView = (): React.ReactElement => {
     answer(pending.courses, pending.grids, null);
   }, [answer, pending]);
 
+  // The notice replaces the loading indicator rather than the whole view.
+  // FetchEducationView fetches from a mount effect, so swapping it out would
+  // re-run that effect and fetch a second time — which would surface the
+  // notice again, in a loop. Keeping it mounted and passing the notice in
+  // means the fetch happens exactly once.
   return (
-    <>
-      <FetchEducationView
-        testID="fetch-course-view"
-        tag="FetchCourseView"
-        doLoginAndFetch={() => doLoginAndGetCourseList(deliver)}
-        doFetch={() => doGetCourseList(deliver)}
-        onError={message => answer([], [], message)}
-      />
+    <FetchEducationView
+      testID="fetch-course-view"
+      tag="FetchCourseView"
+      doLoginAndFetch={() => doLoginAndGetCourseList(deliver)}
+      doFetch={() => doGetCourseList(deliver)}
+      onError={message => answer([], [], message)}>
       {pending ? (
-        <IgnoredCourseDialog
+        <IgnoredCourseNotice
           testID="fetch-course-view-ignored"
           courses={pending.ignored}
           canImport={pending.courses.length > 0}
           onAcknowledge={acknowledge}
         />
       ) : null}
-    </>
+    </FetchEducationView>
   );
 };
 

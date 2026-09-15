@@ -27,7 +27,9 @@ name: Ignored courses are reported with a reason before the import completes
 
 - launchApp:
     appId: 'org.reactjs.native.example.ham-rn'
-    stopApp: true
+    # clearState, not stopApp: see the note in smoke.yaml — the
+    # terminate hung on CI and took the driver session down with it.
+    clearState: true
 - extendedWaitUntil:
     visible: 'RNFetchCourseViewE2E'
     timeout: 60000

@@ -3,10 +3,9 @@
  * @version 1.0
  * @date 2026/9/14
  */
-import React, {useEffect} from 'react';
+import React from 'react';
 import '@/i18n/i18n';
-import {BackHandler, ScrollView, StyleSheet, Text, View} from 'react-native';
-import Color from 'color';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import type {CourseEntity} from '@/business/education/course';
 import {useColor} from '@/utils/color/color';
@@ -18,8 +17,14 @@ import PrimaryButton from '@/utils/ui/PrimaryButton';
  * education system sent, so offering "import anyway" only asks them to
  * authorise a timetable they cannot evaluate. The import proceeds once they
  * acknowledge it.
+ *
+ * This renders inline rather than as a modal. The host already presents the
+ * course screen inside a `.sheet` (CourseSettingViewBasicSection), so a dialog
+ * here would be a modal stacked on a sheet — a second layer of chrome, a
+ * scrim behind the scrim, and on Android a second back-target. Filling the
+ * sheet we were given is the simpler thing and matches how the host frames it.
  */
-const IgnoredCourseDialog = ({
+const IgnoredCourseNotice = ({
   courses,
   canImport,
   onAcknowledge,
@@ -33,30 +38,11 @@ const IgnoredCourseDialog = ({
   const {t} = useTranslation();
   const color = useColor();
 
-  // The host app blocks on a callback, so the back button must run the same
-  // acknowledgement it would on a tap — otherwise it dismisses the dialog and
-  // leaves the host waiting forever.
-  useEffect(() => {
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        onAcknowledge();
-        return true;
-      },
-    );
-    return () => subscription.remove();
-  }, [onAcknowledge]);
-
   return (
     <View
       testID={testID}
-      style={[
-        styles.overlay,
-        {backgroundColor: Color(color.ham_text_primary).alpha(0.45).hexa()},
-      ]}>
-      <View
-        testID={testID ? `${testID}-card` : undefined}
-        style={[styles.card, {backgroundColor: color.ham_bg_b2}]}>
+      style={[styles.container, {backgroundColor: color.ham_bg_b1}]}>
+      <View style={styles.content}>
         <Text
           testID={testID ? `${testID}-title` : undefined}
           style={[styles.title, {color: color.ham_text_primary}]}>
@@ -75,8 +61,7 @@ const IgnoredCourseDialog = ({
         <ScrollView
           accessibilityLabel="ignoredCourseList"
           testID={testID ? `${testID}-list` : undefined}
-          style={styles.list}
-          nestedScrollEnabled>
+          style={styles.list}>
           {courses.map((course, index) => (
             <View
               key={`${course.courseId}-${index}`}
@@ -117,17 +102,16 @@ const IgnoredCourseDialog = ({
 };
 
 const styles = StyleSheet.create({
-  // The button is full-width inside the card, so centring it is just a matter
-  // of not constraining it; the row exists to keep the list from pushing it.
   buttonRow: {
-    alignItems: 'center',
-    marginTop: 4,
+    marginTop: 8,
   },
-  card: {
-    borderRadius: 16,
-    maxHeight: '80%',
+  container: {
+    flex: 1,
+    width: '100%',
+  },
+  content: {
+    flex: 1,
     padding: 20,
-    width: '85%',
   },
   item: {
     paddingVertical: 6,
@@ -140,17 +124,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   list: {
-    marginBottom: 8,
+    flexShrink: 1,
     marginTop: 12,
-  },
-  overlay: {
-    alignItems: 'center',
-    bottom: 0,
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
   },
   summary: {
     fontSize: 13,
@@ -162,4 +137,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default IgnoredCourseDialog;
+export default IgnoredCourseNotice;

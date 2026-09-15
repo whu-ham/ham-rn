@@ -24,6 +24,13 @@ interface FetchEducationViewProps {
   doFetch: () => Promise<void>;
   onError: (message: string) => void;
   testID?: string;
+  /**
+   * Replaces the loading indicator once the fetch has produced something to
+   * show. Passing this instead of swapping the whole view matters: this
+   * component fetches from a mount effect, so unmounting it to render a
+   * different screen would re-run that effect and fetch again.
+   */
+  children?: React.ReactNode;
 }
 
 const FetchEducationView = ({
@@ -32,6 +39,7 @@ const FetchEducationView = ({
   doFetch,
   onError,
   testID,
+  children,
 }: FetchEducationViewProps): React.ReactElement => {
   const {t} = useTranslation();
   const [reAuthUrl, setReAuthUrl] = useState('');
@@ -76,16 +84,18 @@ const FetchEducationView = ({
 
   return (
     <View style={containerStyle} testID={testID}>
-      <View
-        style={loadingContainerStyle}
-        testID={testID ? `${testID}-loading` : undefined}>
-        <ActivityIndicator size={'large'} />
-        <Text
-          style={loadingTextStyle}
-          testID={testID ? `${testID}-loading-text` : undefined}>
-          {t('education.loading')}
-        </Text>
-      </View>
+      {children ?? (
+        <View
+          style={loadingContainerStyle}
+          testID={testID ? `${testID}-loading` : undefined}>
+          <ActivityIndicator size={'large'} />
+          <Text
+            style={loadingTextStyle}
+            testID={testID ? `${testID}-loading-text` : undefined}>
+            {t('education.loading')}
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
