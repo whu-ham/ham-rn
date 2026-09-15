@@ -127,10 +127,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  // Height driven by its rows. An explicit `flexShrink: 1` here used to keep
-  // the list at its natural height, which is correct — so it is left to the
-  // default (1) rather than restated.
+  // The ScrollView must take its rows' height and no more. React Native gives
+  // ScrollView a default `flexGrow: 1`, so without pinning it to 0 the list
+  // swallows every spare pixel: a short list strands the button at the very
+  // bottom of the sheet, and a long one pushes it off-screen entirely.
   list: {
+    flexGrow: 0,
     marginTop: 12,
   },
   summary: {

@@ -33,35 +33,14 @@ interface KbItem {
 }
 
 /**
- * Two courses parse, two do not — one because the week string is a word the
- * parser does not understand, one because the system sent no schedule at all.
- * That exercises both reason strings the notice can render.
+ * The courses the parser will drop, and why.
+ *
+ * `大学物理` carries a week string the parser does not understand and `体育`
+ * carries none at all, so the notice has to render both reason strings. The
+ * remaining rows exist to make the list long enough to scroll: a notice is only
+ * correct if the button stays on screen whether the list is two rows or twenty.
  */
-const kbList: KbItem[] = [
-  {
-    kcmc: '高等数学',
-    jxbmc: 'MATH001',
-    xqj: '1',
-    cdmc: '教三 301',
-    jcs: '1-2',
-    xm: '张老师',
-    zcmc: '主讲',
-    kcxz: '公共基础必修',
-    xf: '4',
-    zcd: PARSEABLE,
-  },
-  {
-    kcmc: '线性代数',
-    jxbmc: 'MATH002',
-    xqj: '3',
-    cdmc: '教三 302',
-    jcs: '3-4',
-    xm: '李老师',
-    zcmc: '主讲',
-    kcxz: '公共基础必修',
-    xf: '3',
-    zcd: PARSEABLE,
-  },
+const ignoredCourses: KbItem[] = [
   {
     kcmc: '大学物理',
     jxbmc: 'PHYS001',
@@ -86,7 +65,55 @@ const kbList: KbItem[] = [
     xf: '1',
     zcd: MISSING,
   },
+  ...Array.from({length: 18}, (_, index): KbItem => {
+    const n = String(index).padStart(2, '0');
+    return {
+      kcmc: `选修${n}`,
+      jxbmc: `ELEC${n}`,
+      xqj: `${(index % 7) + 1}`,
+      cdmc: '教三 301',
+      jcs: '1-2',
+      xm: '张老师',
+      zcmc: '主讲',
+      kcxz: '通识选修',
+      xf: '2',
+      zcd: UNPARSEABLE,
+    };
+  }),
 ];
+
+/**
+ * Two parses succeed, so the notice reports a partial import rather than a total
+ * failure — the case where the button still has a timetable to commit.
+ */
+const parsedCourses: KbItem[] = [
+  {
+    kcmc: '高等数学',
+    jxbmc: 'MATH001',
+    xqj: '1',
+    cdmc: '教三 301',
+    jcs: '1-2',
+    xm: '张老师',
+    zcmc: '主讲',
+    kcxz: '公共基础必修',
+    xf: '4',
+    zcd: PARSEABLE,
+  },
+  {
+    kcmc: '线性代数',
+    jxbmc: 'MATH002',
+    xqj: '3',
+    cdmc: '教三 302',
+    jcs: '3-4',
+    xm: '李老师',
+    zcmc: '主讲',
+    kcxz: '公共基础必修',
+    xf: '3',
+    zcd: PARSEABLE,
+  },
+];
+
+const kbList: KbItem[] = [...parsedCourses, ...ignoredCourses];
 
 /** A CAS login success page, enough to satisfy `loginEducation`. */
 const loginSuccessPage = '<html><body>教学管理信息服务平台</body></html>';

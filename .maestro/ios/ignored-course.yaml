@@ -50,9 +50,21 @@ name: Ignored courses are reported with a reason before the import completes
 - assertVisible: 'ignoredCourse-体育'
 - assertVisible: 'ignoredCourseList'
 
+# The list is deliberately long enough to scroll. That is the point: a short
+# list must leave the button under the last row, and a long one must keep the
+# button on screen instead of pushing it off the bottom.
+- assertVisible: 'ignoredCourseList'
+- scrollUntilVisible:
+    element: '选修17'
+    direction: DOWN
+    timeout: 30000
+
+# Scrolling the rows must not take the button away — it is the thing the user
+# has to press, so it stays put while the rows move.
+- assertVisible: 'ignoredCourseAcknowledge'
+
 # Acknowledging dismisses the notice. Pressing it is what completes the import;
 # until then nothing has been reported to the host.
-- assertVisible: 'ignoredCourseAcknowledge'
 - tapOn: 'ignoredCourseAcknowledge'
 - extendedWaitUntil:
     notVisible: 'ignoredCourseAcknowledge'
