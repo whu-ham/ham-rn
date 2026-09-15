@@ -14,6 +14,13 @@ beforeEach(() => {
 
 const loggedLines = () => mockLog.i.mock.calls.map(call => call.join(' '));
 
+/**
+ * Strips the "Request <method> <url> (n/total): " prefix and the trailing
+ * newline that makes each chunk its own log line, leaving the chunk's content.
+ */
+const headerBodies = (lines: string[]): string[] =>
+  lines.map(line => line.replace(/^.*?\(\d+\/\d+\): /, '').replace(/\n$/, ''));
+
 describe('request logging', () => {
   it('logs the method, url and headers before issuing the request', async () => {
     await requestGet({
@@ -78,10 +85,10 @@ describe('request logging', () => {
       expect(line.length).toBeLessThan(4 * 1024 + 256);
       expect(line).toContain(`(${index + 1}/${headerLines.length})`);
     });
-    // Reassembling the chunks must reproduce the original header verbatim.
-    const reassembled = headerLines
-      .map(line => line.replace(/^.*?\(\d+\/\d+\): /, ''))
-      .join('');
+    // Reassembling the chunks must reproduce the original header. Each chunk
+    // is terminated with a newline so it stands as its own line in the log;
+    // that terminator is formatting, not content, so drop it before comparing.
+    const reassembled = headerBodies(headerLines).join('');
     expect(reassembled).toContain('x'.repeat(10 * 1024));
   });
 
@@ -105,10 +112,28 @@ describe('request logging', () => {
     headerLines.forEach(line => {
       expect(line.length).toBeLessThan(4 * 1024 + 256);
     });
-    const reassembled = headerLines
-      .map(line => line.replace(/^.*?\(\d+\/\d+\): /, ''))
-      .join('');
+    const reassembled = headerBodies(headerLines).join('');
     expect(reassembled).toContain(oneLongLine);
+  });
+
+  it('terminates each chunk with a newline so it stands as its own line', async () => {
+    // A chunk is up to 4KB and would otherwise run into the next chunk's text
+    // in the log. The newline is what keeps the pieces readable as separate
+    // lines; it is added when the line is built, not stored in the chunk.
+    await requestGet({
+      url: 'https://example.test/terminated',
+      headers: {'X-Big': 'x'.repeat(10 * 1024)},
+    });
+
+    const headerLines = loggedLines().filter(line =>
+      /^Request GET https:\/\/example\.test\/terminated \(\d+\/\d+\): /.test(
+        line,
+      ),
+    );
+    expect(headerLines.length).toBeGreaterThan(1);
+    headerLines.forEach(line => {
+      expect(line.endsWith('\n')).toBe(true);
+    });
   });
 
   it('does not tag short header logs with a chunk counter', async () => {

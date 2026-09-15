@@ -52,12 +52,27 @@ const chunk = (text: string): string[] => {
   return parts;
 };
 
-/** Writes a line in xlog-sized chunks, suffixing each one with (n/total). */
+/**
+ * Writes a long body as several log entries, each ending in a newline.
+ *
+ * Two things are going on, and they are separate:
+ *
+ *   - `chunk` cuts the text into pieces that fit xlog's buffer, preferring an
+ *     existing line boundary so a line is not split in half. It is lossless:
+ *     `parts.join('')` reproduces the input exactly.
+ *   - This appends the newline that makes each piece its own line in the log.
+ *     A chunk that already ends at a line boundary keeps its single newline
+ *     rather than gaining a blank one.
+ *
+ * The newline is added here rather than in `chunk` so the splitter stays a pure
+ * operation on the text and the formatting lives where the log line is built.
+ */
 const logChunked = (level: 'i' | 'e', prefix: string, body: string): void => {
   const parts = chunk(body);
   parts.forEach((part, index) => {
     const counter = parts.length > 1 ? ` (${index + 1}/${parts.length})` : '';
-    Log[level](TAG, `${prefix}${counter}: ${part}`);
+    const terminator = part.endsWith('\n') ? '' : '\n';
+    Log[level](TAG, `${prefix}${counter}: ${part}${terminator}`);
   });
 };
 
