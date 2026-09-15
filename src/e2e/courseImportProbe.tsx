@@ -99,7 +99,23 @@ const useOutcome = (): ImportOutcome | null => {
   return current;
 };
 
+/**
+ * The verdict is asserted through its `accessibilityLabel`, not its text.
+ *
+ * On iOS an `accessibilityLabel` *replaces* a `<Text>`'s content in the
+ * accessibility tree — so a flow matching the word `success` never sees it,
+ * however clearly it is on screen. Maestro reads that tree and nothing else,
+ * so the outcome has to travel in the label. The visible text is still the
+ * bare word, because that is what makes the screen legible to a human.
+ *
+ * Android is unaffected: it can select by `id`, and its label does not
+ * displace the text — which is why this only ever failed on iOS.
+ */
 const VERDICT_LABEL = 'courseImportVerdict';
+const PENDING_LABEL = 'courseImportPending';
+
+const verdictLabel = (v: string | null): string =>
+  v ? `${VERDICT_LABEL}-${v}` : PENDING_LABEL;
 
 const CourseImportProbe = (): React.ReactElement => {
   const color = useColor();
@@ -114,14 +130,14 @@ const CourseImportProbe = (): React.ReactElement => {
       {verdictText ? (
         <Text
           testID="course-import-verdict"
-          accessibilityLabel={VERDICT_LABEL}
+          accessibilityLabel={verdictLabel(verdictText)}
           style={[styles.text, {color: color.ham_text_primary}]}>
           {verdictText}
         </Text>
       ) : (
         <Text
           testID="course-import-pending"
-          accessibilityLabel="courseImportPending"
+          accessibilityLabel={PENDING_LABEL}
           style={[styles.text, {color: color.ham_text_secondary}]}>
           pending
         </Text>
