@@ -74,6 +74,30 @@ describe('app entry registrations', () => {
     );
   });
 
+  /**
+   * The e2e fixture must not be installed by loading the entry point.
+   *
+   * It replaces `global.fetch` for two hostnames — the CAS login and the
+   * timetable endpoint. Installed at module scope it would run at every
+   * production startup, so the real course screen and the headless callable
+   * would be served canned courses instead of the user's timetable, while
+   * score requests still bypassed the real login. Nothing would look broken;
+   * the app would just import the wrong data.
+   *
+   * So the entries install it when they mount, and this pins that: importing
+   * `index.js` — which is what the host app does — has to leave `fetch` alone.
+   */
+  it('does not install the e2e fetch fixture at startup', () => {
+    const pristine = global.fetch;
+    require('../index.js');
+    expect(global.fetch).toBe(pristine);
+    // Belt and braces: the fixture tags what it installs, so a patch that
+    // happened to be swapped in for an identical reference still gets caught.
+    expect(
+      (global.fetch as {__e2eScenario?: string}).__e2eScenario,
+    ).toBeUndefined();
+  });
+
   it('lists every scenario in the Android shell, so each is tappable', () => {
     // Two lists have to agree or a scenario becomes unreachable: the
     // registrations here, and `E2E_SCENARIOS` in HomeActivity.kt. The failure

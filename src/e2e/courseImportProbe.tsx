@@ -19,7 +19,7 @@ import {useColor} from '@/utils/color/color';
  * one place every branch passes through. The wrapper records the call and then
  * forwards it, so the host still sees exactly what it would have seen.
  *
- * Only the e2e entry installs this — see `FetchCourseViewE2E`.
+ * Only the e2e entry installs this — see `courseImportEntries`.
  */
 
 /** What the last `onGetCourseList` call reported. */
