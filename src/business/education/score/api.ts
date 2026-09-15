@@ -1,6 +1,5 @@
 import {parseResponse} from './parser';
-import {requestGet, requestPost} from '@/utils/request/request';
-import Log from '@/modules/NativeLog';
+import {logChunked, requestGet, requestPost} from '@/utils/request/request';
 // @ts-ignore
 import {load as cheerioLoad} from 'cheerio/dist/browser';
 import {getCourseList} from '@/business/education/course';
@@ -97,7 +96,9 @@ const getScoreList = async ({
   });
   const rawStr = await response.text();
   const str = rawStr.replaceAll(' ', '');
-  Log.i('getScoreList', `response: ${str}`);
+  // A full score history runs past the 16KB buffer xlog formats into, and
+  // an oversized entry is dropped whole. Split it like the request layer.
+  logChunked('i', 'response', str, 'getScoreList');
   const json = JSON.parse(str);
   return parseResponse({json});
 };

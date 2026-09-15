@@ -66,13 +66,21 @@ const chunk = (text: string): string[] => {
  *
  * The newline is added here rather than in `chunk` so the splitter stays a pure
  * operation on the text and the formatting lives where the log line is built.
+ *
+ * `tag` defaults to this module's own; callers logging under their own tag pass
+ * it so the pieces reassemble under the same one.
  */
-const logChunked = (level: 'i' | 'e', prefix: string, body: string): void => {
+const logChunked = (
+  level: 'i' | 'e',
+  prefix: string,
+  body: string,
+  tag: string = TAG,
+): void => {
   const parts = chunk(body);
   parts.forEach((part, index) => {
     const counter = parts.length > 1 ? ` (${index + 1}/${parts.length})` : '';
     const terminator = part.endsWith('\n') ? '' : '\n';
-    Log[level](TAG, `${prefix}${counter}: ${part}${terminator}`);
+    Log[level](tag, `${prefix}${counter}: ${part}${terminator}`);
   });
 };
 
@@ -168,4 +176,4 @@ const requestPost = ({
   });
 };
 
-export {requestGet, requestPost, chunk};
+export {requestGet, requestPost, chunk, logChunked};
