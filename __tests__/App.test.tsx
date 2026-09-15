@@ -1,7 +1,7 @@
 import {AppRegistry} from 'react-native';
 
 /**
- * `index.js` is the host app's entry point: it registers five RN components
+ * `index.js` is the host app's entry point: it registers the RN components
  * and one callable module. A rename or a deleted file would only surface at
  * runtime inside ham-ios / ham-android, so assert the registrations here.
  *
@@ -12,6 +12,7 @@ const EXPECTED_COMPONENTS = [
   'RNCasMobileLogin',
   'RNCommon',
   'RNFetchCourseView',
+  'RNFetchPostGraduateCourseView',
   'RNFetchScoreView',
   'RNScoreCalcView',
 ];
