@@ -60,6 +60,12 @@ describe('courseFixture', () => {
   it('leaves every other request to the original fetch', async () => {
     // A fixture that swallowed all traffic would silently break any screen
     // that still needs the network.
+    //
+    // The pristine-fetch cache has to be dropped first: it is keyed on
+    // `globalThis` and survives `resetModules`, so without this the fixture
+    // would delegate to whatever fetch happened to be installed when the first
+    // test in this file ran, rather than to the passthrough below.
+    delete (globalThis as {__e2ePristineFetch?: unknown}).__e2ePristineFetch;
     const original = jest
       .spyOn(global, 'fetch')
       .mockResolvedValue(new Response('passthrough'));
@@ -104,5 +110,81 @@ describe('courseFixture', () => {
     const byName = new Map(ignored.map(c => [c.name, c.rawWeekText]));
     expect(byName.get('大学物理')).toBe('全周');
     expect(byName.get('体育')).toBe('');
+  });
+});
+
+/**
+ * Each scenario exists to put the import state machine into a different
+ * branch, and the branches are distinguished only by what the canned server
+ * returns. So the fixture's per-scenario shape is the thing that decides
+ * whether a flow covers the branch it claims to: a `clean` payload that still
+ * contained an unparseable week string would show the notice and the clean
+ * flow would fail at its first assertion, while an `allFailed` payload with one
+ * parseable course would silently commit a timetable the flow never checks.
+ *
+ * `installE2EFetch` installs once and then ignores later calls, so these
+ * reinstall by resetting modules rather than by calling it again.
+ */
+describe('courseFixture scenarios', () => {
+  interface CourseListPayload {
+    xsxx: {XH_ID?: string; XH?: string};
+    kbList: {kcmc?: string; zcd?: string}[];
+  }
+
+  const install = (
+    scenario: 'partial' | 'clean' | 'allFailed' | 'empty' | 'loginFailed',
+  ) => {
+    jest.resetModules();
+
+    const {installE2EFetch} = require('@/e2e/courseFixture');
+    installE2EFetch(scenario);
+  };
+
+  const fetchCourseList = async (): Promise<CourseListPayload> => {
+    const response = await fetch(
+      'https://jwgl.whu.edu.cn/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151',
+      {method: 'POST', body: 'xnm=2026'},
+    );
+    return (await response.json()) as CourseListPayload;
+  };
+
+  /** How many of the payload's courses the parser can place, and how many not. */
+  const split = async () => {
+    const json = await fetchCourseList();
+    const [map] = parseResponse({json, year: 2026, semester: 1});
+    const [courses, , ignored] = toNativeCoursePairing(map);
+    return {parsed: courses.length, ignored: ignored.length};
+  };
+
+  it.each([
+    ['clean', 2, 0],
+    ['partial', 2, 20],
+    ['allFailed', 0, 20],
+    ['empty', 0, 0],
+  ] as const)(
+    'gives %s %i parseable and %i dropped courses',
+    async (scenario, parsed, ignored) => {
+      install(scenario);
+      expect(await split()).toEqual({parsed, ignored});
+    },
+  );
+
+  it('makes loginFailure answer CAS without the success marker', async () => {
+    install('loginFailed');
+    const response = await fetch(
+      'https://cas.whu.edu.cn/authserver/login?service=x',
+    );
+    const text = await response.text();
+    // `loginEducation` keys off this exact string, so a page that still
+    // contained it would make the login-failure flow take the success branch.
+    expect(text).not.toContain('教学管理信息服务平台');
+  });
+
+  it('makes every other scenario answer CAS with the success marker', async () => {
+    install('clean');
+    const response = await fetch(
+      'https://cas.whu.edu.cn/authserver/login?service=x',
+    );
+    expect(await response.text()).toContain('教学管理信息服务平台');
   });
 });

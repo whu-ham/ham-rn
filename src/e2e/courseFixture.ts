@@ -118,20 +118,61 @@ const kbList: KbItem[] = [...parsedCourses, ...ignoredCourses];
 /** A CAS login success page, enough to satisfy `loginEducation`. */
 const loginSuccessPage = '<html><body>教学管理信息服务平台</body></html>';
 
-/** The payload `getCourseList` would have parsed off the wire. */
-const courseListResponse = {
-  xsxx: {XH: '2021302111001'},
-  kbList,
+/**
+ * A CAS page that is *not* a success page, so `loginEducation` throws
+ * `CasLoginError` — the "session could not be established" branch.
+ */
+const loginFailurePage = '<html><body>请输入用户名密码</body></html>';
+
+/**
+ * The timetable payloads, one per branch of the import state machine.
+ *
+ * `installE2EFetch` picks one by name, because the branches are distinguished
+ * only by what the server returns: an e2e flow cannot reach them any other way
+ * (there is no way to inject a parse failure from outside).
+ */
+export type CourseScenario = 'partial' | 'clean' | 'allFailed' | 'empty';
+
+const scenarioKbList: Record<CourseScenario, KbItem[]> = {
+  // Two parse, twenty do not: the notice appears and there is still a
+  // timetable to commit.
+  partial: kbList,
+  // Everything parses, so the import completes with no notice at all.
+  clean: parsedCourses,
+  // Nothing parses, so the notice appears and the button reports an error
+  // rather than committing an empty timetable.
+  allFailed: ignoredCourses,
+  // No courses at all, so the import completes with no notice.
+  empty: [],
 };
+
+/** The payload `getCourseList` would have parsed off the wire. */
+const courseListResponse = (scenario: CourseScenario) => ({
+  xsxx: {XH: '2021302111001'},
+  kbList: scenarioKbList[scenario],
+});
+
+/** True for the scenarios whose CAS login must fail. */
+const failsLogin = (scenario: string): boolean =>
+  scenario.indexOf('loginFailed') !== -1;
 
 /**
  * Matches on URL substring and returns a 200 Response, so it can stand in for
  * either the CAS login page or the timetable endpoint.
+ *
+ * The scenario decides what each endpoint answers. A `loginFailed*` scenario
+ * returns a CAS page without the success marker, which makes the real
+ * `loginEducation` throw — the login failure has to come from inside the
+ * response, because nothing outside the bundle can induce one in a Release
+ * build.
  */
-const fakeFetch = (input: string): Promise<Response> | undefined => {
+const fakeFetch = (
+  input: string,
+  scenario: string,
+): Promise<Response> | undefined => {
   if (input.indexOf('cas.whu.edu.cn/authserver/login') !== -1) {
     return Promise.resolve(
-      new Response(loginSuccessPage, {
+      new Response(failsLogin(scenario) ? loginFailurePage : loginSuccessPage, {
         status: 200,
         headers: {'Content-Type': 'text/html'},
       }),
@@ -139,21 +180,54 @@ const fakeFetch = (input: string): Promise<Response> | undefined => {
   }
   if (input.indexOf('xskbcx_cxXsgrkb') !== -1) {
     return Promise.resolve(
-      new Response(JSON.stringify(courseListResponse), {
-        status: 200,
-        headers: {'Content-Type': 'application/json'},
-      }),
+      new Response(
+        JSON.stringify(courseListResponse(scenario as CourseScenario)),
+        {status: 200, headers: {'Content-Type': 'application/json'}},
+      ),
     );
   }
   return undefined;
 };
 
-/** Installs the fixture over `global.fetch`, once. */
-const installE2EFetch = () => {
-  const original = global.fetch;
-  if ((global.fetch as {__e2e?: boolean}).__e2e) {
+/**
+ * The pristine `fetch`, captured before any patch. Held on `globalThis` rather
+ * than in a module-level closure because the module is re-evaluated whenever
+ * `jest.resetModules()` runs, and a closure would then capture an already
+ * patched fetch and chain another patch on top of it.
+ */
+const pristineFetch = (): typeof global.fetch => {
+  const holder = globalThis as {
+    __e2ePristineFetch?: typeof global.fetch;
+  };
+  holder.__e2ePristineFetch ??= global.fetch;
+  return holder.__e2ePristineFetch;
+};
+
+/**
+ * Installs the fixture over `global.fetch` for one scenario.
+ *
+ * The scenario is fixed at install time, because each e2e entry installs
+ * exactly one and never changes it — a `RNFetchCourseViewE2EClean` entry always
+ * drives the clean-import branch.
+ *
+ * Re-installing the *same* scenario is a no-op, which is what keeps a second
+ * install from chaining another patch over the first. Re-installing a
+ * *different* scenario replaces it: two entries cannot share one process
+ * (each is its own AppRegistry root), so a second, different scenario means
+ * the caller asked for a branch it is not going to get. Silently keeping the
+ * first would have every flow testing one branch while reporting success for
+ * several, which is the exact failure this fixture exists to prevent.
+ */
+const installE2EFetch = (
+  scenario: CourseScenario | 'loginFailed' = 'partial',
+) => {
+  const current = global.fetch as {
+    __e2eScenario?: string;
+  };
+  if (current.__e2eScenario === scenario) {
     return;
   }
+  const original = pristineFetch();
   const patched = ((
     input: string | URL | globalThis.Request,
     init?: RequestInit,
@@ -164,9 +238,9 @@ const installE2EFetch = () => {
         : input instanceof URL
           ? input.href
           : input.url;
-    return fakeFetch(url) ?? original(input as never, init);
+    return fakeFetch(url, scenario) ?? original(input as never, init);
   }) as typeof global.fetch;
-  (patched as {__e2e?: boolean}).__e2e = true;
+  (patched as {__e2eScenario?: string}).__e2eScenario = scenario;
   global.fetch = patched;
 };
 
