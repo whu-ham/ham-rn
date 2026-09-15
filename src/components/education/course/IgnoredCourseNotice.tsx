@@ -43,25 +43,35 @@ const IgnoredCourseNotice = ({
       testID={testID}
       style={[styles.container, {backgroundColor: color.ham_bg_b1}]}>
       <View style={styles.content}>
-        <Text
-          testID={testID ? `${testID}-title` : undefined}
-          style={[styles.title, {color: color.ham_text_primary}]}>
-          {t('education.ignored_course_title')}
-        </Text>
-        <Text
-          testID={testID ? `${testID}-summary` : undefined}
-          style={[styles.summary, {color: color.ham_text_secondary}]}>
-          {canImport
-            ? t('education.ignored_course_summary', {count: courses.length})
-            : t('education.ignored_course_summary_all_failed', {
-                count: courses.length,
-              })}
-        </Text>
+        <View style={styles.heading}>
+          <Text
+            testID={testID ? `${testID}-title` : undefined}
+            style={[styles.title, {color: color.ham_text_primary}]}>
+            {t('education.ignored_course_title')}
+          </Text>
+          <Text
+            testID={testID ? `${testID}-summary` : undefined}
+            style={[styles.summary, {color: color.ham_text_secondary}]}>
+            {canImport
+              ? t('education.ignored_course_summary', {count: courses.length})
+              : t('education.ignored_course_summary_all_failed', {
+                  count: courses.length,
+                })}
+          </Text>
+        </View>
 
+        {/*
+          The list spans the full width of the sheet so the scrollbar tracks
+          the screen edge, which is where the platform puts it. Row content is
+          inset again through contentContainerStyle rather than padding on the
+          ScrollView itself — padding there would pull the scrollbar inward with
+          it and leave a visible gutter beside the rows.
+        */}
         <ScrollView
           accessibilityLabel="ignoredCourseList"
           testID={testID ? `${testID}-list` : undefined}
-          style={styles.list}>
+          style={styles.list}
+          contentContainerStyle={styles.listContent}>
           {courses.map((course, index) => (
             <View
               key={`${course.courseId}-${index}`}
@@ -112,10 +122,17 @@ const styles = StyleSheet.create({
   // Sized by its content instead of filling the sheet. As `flex: 1` the column
   // claimed every pixel the sheet had and pushed the button down to the bottom
   // edge, ~1600dp below the last row. Now it sits just under the list.
+  //
+  // No horizontal padding here: the list has to bleed to the sheet edge so the
+  // scrollbar tracks the screen edge, so the gutter lives on the heading and on
+  // the list's content container instead.
   content: {
     flexShrink: 1,
-    paddingHorizontal: 20,
+    paddingBottom: 20,
     paddingTop: 20,
+  },
+  heading: {
+    paddingHorizontal: 20,
   },
   item: {
     paddingVertical: 6,
@@ -127,13 +144,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  // The ScrollView must take its rows' height and no more. React Native gives
-  // ScrollView a default `flexGrow: 1`, so without pinning it to 0 the list
-  // swallows every spare pixel: a short list strands the button at the very
-  // bottom of the sheet, and a long one pushes it off-screen entirely.
+  // The scrollbar belongs against the screen edge, so the ScrollView itself spans
+  // the full width and the gutter is restored inside it. Padding on the
+  // ScrollView would pull the scrollbar inward and leave a gutter beside the
+  // rows.
   list: {
     flexGrow: 0,
     marginTop: 12,
+  },
+  listContent: {
+    paddingBottom: 4,
+    paddingHorizontal: 20,
   },
   summary: {
     fontSize: 13,
