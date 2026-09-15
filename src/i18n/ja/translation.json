@@ -23,6 +23,7 @@
     "loading": "読み込み中",
     "login_failed_full": "教務システムのログインに失敗しました！{{reason}}",
     "login_failed_reason": "「マイ -> ポータルログイン」から再ログインしてみてください。",
+    "postgraduate_not_supported": "まだサポートされていません",
     "score_fetch_failed_with_reason": "成績の取得に失敗しました！{{reason}}",
     "semester_not_set": "学期開始日が設定されていません"
   },

@@ -23,6 +23,7 @@
     "loading": "Loading",
     "login_failed_full": "Education system login failed! {{reason}}",
     "login_failed_reason": "Try re-logging in via \"Me -> Portal Login\".",
+    "postgraduate_not_supported": "Not supported yet",
     "score_fetch_failed_with_reason": "Failed to fetch scores! {{reason}}",
     "semester_not_set": "Semester start date not set"
   },
