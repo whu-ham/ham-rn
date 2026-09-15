@@ -10,6 +10,7 @@ import {ActivityIndicator, Text, View} from 'react-native';
 import Log from '@/modules/NativeLog';
 import {CasReAuthLoginError} from '@/business/education/api';
 import {useTranslation} from 'react-i18next';
+import {useColor} from '@/utils/color/color';
 import {ReAuthLoginView} from '@/components/cas/ReAuthLoginView';
 
 export enum EducationStage {
@@ -42,6 +43,7 @@ const FetchEducationView = ({
   children,
 }: FetchEducationViewProps): React.ReactElement => {
   const {t} = useTranslation();
+  const color = useColor();
   const [reAuthUrl, setReAuthUrl] = useState('');
   const [stage, setStage] = useState(EducationStage.TRY_GET_INFO_DIRECTLY);
 
@@ -88,9 +90,21 @@ const FetchEducationView = ({
         <View
           style={loadingContainerStyle}
           testID={testID ? `${testID}-loading` : undefined}>
-          <ActivityIndicator size={'large'} />
+          {/*
+            Both of these need an explicit colour, because neither has a
+            themed default. RN's `Text` ships no default style — it paints with
+            the platform's default text colour, which is black whatever the
+            scheme — and `ActivityIndicator` defaults to #999999 on iOS (`null`
+            on Android, where it does follow the theme). Against `ham_bg_b1`
+            once that goes black, both disappear.
+
+            The container behind them deliberately stays transparent: the host
+            already paints the sheet with its own themed background, so filling
+            it here would only add a second, possibly stale, surface.
+          */}
+          <ActivityIndicator size={'large'} color={color.ham_text_secondary} />
           <Text
-            style={loadingTextStyle}
+            style={[loadingTextStyle, {color: color.ham_text_secondary}]}
             testID={testID ? `${testID}-loading-text` : undefined}>
             {t('education.loading')}
           </Text>

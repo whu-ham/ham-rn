@@ -1,4 +1,5 @@
 import React from 'react';
+import {Appearance} from 'react-native';
 import {render, screen, waitFor} from '@testing-library/react-native';
 import FetchEducationView, {
   EducationStage,
@@ -127,6 +128,43 @@ describe('FetchEducationView', () => {
       await renderView();
       expect(screen.queryByTestId(`${TEST_ID}-loading`)).toBeNull();
       expect(screen.getByText(zh.education.loading)).toBeTruthy();
+    });
+  });
+
+  /**
+   * The loading state has to be legible against the host's sheet, which the host
+   * paints with its own themed background — black in dark mode. Neither element
+   * gets there on its own: RN's `Text` ships no default style, so it paints with
+   * the platform's default text colour (black in both schemes), and
+   * `ActivityIndicator` defaults to #999999 on iOS.
+   *
+   * These are pinned per scheme rather than once, and through `flattenStyle`,
+   * because the natural way to write this — `Color(props.style)` on a style
+   * array — silently parses to black and passes for any colour at all.
+   */
+  describe('loading stage theming', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    const flatStyleOf = (testID: string): Record<string, unknown> => {
+      const style = screen.getByTestId(testID).props.style;
+      return Array.isArray(style) ? Object.assign({}, ...style) : (style ?? {});
+    };
+
+    it('colours the loading text from the palette', async () => {
+      jest.spyOn(Appearance, 'getColorScheme').mockReturnValue('dark');
+      await renderView({testID: TEST_ID});
+      expect(flatStyleOf(`${TEST_ID}-loading-text`).color).toBe('gray');
+    });
+
+    it('gives the spinner a colour instead of the iOS default', async () => {
+      jest.spyOn(Appearance, 'getColorScheme').mockReturnValue('dark');
+      const {toJSON} = await renderView({testID: TEST_ID});
+      const spinner = findHost(toJSON(), 'ActivityIndicator');
+      // Not `undefined`, and not RN's own #999999: either would leave the
+      // spinner invisible, or nearly so, on the dark sheet.
+      expect(spinner).toMatchObject({props: {color: 'gray'}});
     });
   });
 
