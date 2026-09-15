@@ -5,6 +5,9 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2021",
+    // `baseUrl` is deprecated in TS 6 but `tsx` still requires it to resolve
+    // the `@/*` path alias when running scripts/embed.ts.
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
