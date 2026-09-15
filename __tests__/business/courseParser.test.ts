@@ -227,9 +227,40 @@ it('deduplicates weeks shared between segments', () => {
   ]);
 });
 
+// The ordinal form the system also emits: "第" prefixes the range, and it used
+// to survive the cleanup so `parseInt('第1')` returned NaN and the course was
+// dropped as unparsable despite carrying a perfectly readable week range.
+it('parses an ordinal range', () => {
+  const course = firstCourse([{zcd: '第1-8周', jcs: '1-2', xqj: '1'}]);
+  expect(course.weekFrom).toBe(1);
+  expect(course.weekTo).toBe(8);
+  expect(firstGrid([{zcd: '第1-8周'}]).map(g => g.week)).toEqual([
+    1, 2, 3, 4, 5, 6, 7, 8,
+  ]);
+});
+
+it('parses an ordinal single week', () => {
+  expect(firstGrid([{zcd: '第3周'}]).map(g => g.week)).toEqual([3]);
+});
+
+it('applies the odd/even marker inside an ordinal range', () => {
+  expect(firstGrid([{zcd: '第1-8周(单)'}]).map(g => g.week)).toEqual([
+    1, 3, 5, 7,
+  ]);
+  expect(firstGrid([{zcd: '（双）第2-8周'}]).map(g => g.week)).toEqual([
+    2, 4, 6, 8,
+  ]);
+});
+
+it('parses each segment of an ordinal multi-segment spec', () => {
+  expect(firstGrid([{zcd: '第1-2周，第5-6周'}]).map(g => g.week)).toEqual([
+    1, 2, 5, 6,
+  ]);
+});
+
 // These stay unparsable, so the course keeps an empty grid list. Filtering it
 // out is toNativeCoursePairing's job, not parseResponse's.
-it.each([['全周'], ['第1-8周'], [''], [undefined]])(
+it.each([['全周'], [''], [undefined]])(
   'yields an empty grid list for the unparsable zcd %p',
   zcd => {
     const [map] = parse([{kcmc: 'A', zcd}]);

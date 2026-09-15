@@ -161,7 +161,12 @@ const handleSingleWeekTime = (
     courseWeekType = CourseWeekType.EVEN;
   }
 
-  const clearTimeStr = singleWeekTime.replace(/[()（）单双周]/g, '');
+  // `第` is stripped along with the parens and the 周 suffix because it is the
+  // ordinal marker the system puts in front of some week specs ("第1-8周",
+  // "第3周"). Left standing it hands "第1" to `parseInt`, which returns NaN and
+  // drops the course without a word — the same quiet failure the segment
+  // separators above exist to prevent.
+  const clearTimeStr = singleWeekTime.replace(/[()（）单双第周]/g, '');
   const weekNumStrArr = clearTimeStr.split('-');
   const weekFrom = parseInt(weekNumStrArr[0], 10);
   if (isNaN(weekFrom)) {
