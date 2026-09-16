@@ -273,14 +273,18 @@ describe('educationCallableModule.updateScoreList', () => {
     );
     await educationCallableModule.updateScoreList();
 
-    expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
-      [],
-      [],
+    // The score callback, not the course one: the host is waiting on this
+    // entry point, and answering on the course callback left the score card
+    // loading forever while also handing the course list a failure.
+    expect(EducationModule.onGetScoreList).toHaveBeenCalledWith(
+      '',
+      '',
       zh.education.score_fetch_failed_with_reason.replace(
         '{{reason}}',
         '成绩解析失败',
       ),
     );
+    expect(EducationModule.onGetCourseList).not.toHaveBeenCalled();
   });
 
   it('falls back to the profile lookup when the student id is empty', async () => {
@@ -319,10 +323,9 @@ describe('educationCallableModule.updateScoreList', () => {
     );
   });
 
-  // Documents a real defect: when the profile lookup fails, the score path
-  // swallows the error and reports it through `onGetCourseList` instead of
-  // `onGetScoreList`, so the host app's score request never gets a response.
-  it('reports a profile-lookup failure through the course callback (known defect)', async () => {
+  // The profile lookup runs inside the same try as the score fetch, so its
+  // failures reach the host the same way a score-fetch failure does.
+  it('reports a profile-lookup failure through the score callback', async () => {
     (getScoreList as jest.Mock).mockResolvedValue([
       [scoreRow],
       {...userInfo, studentId: ''},
@@ -333,15 +336,15 @@ describe('educationCallableModule.updateScoreList', () => {
       educationCallableModule.updateScoreList(),
     ).resolves.toBeUndefined();
 
-    expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
-      [],
-      [],
+    expect(EducationModule.onGetScoreList).toHaveBeenCalledWith(
+      '',
+      '',
       zh.education.score_fetch_failed_with_reason.replace(
         '{{reason}}',
         'profile down',
       ),
     );
-    expect(EducationModule.onGetScoreList).not.toHaveBeenCalled();
+    expect(EducationModule.onGetCourseList).not.toHaveBeenCalled();
   });
 
   it('handles a non-Error rejection during login without throwing', async () => {
@@ -349,7 +352,28 @@ describe('educationCallableModule.updateScoreList', () => {
     await expect(
       educationCallableModule.updateScoreList(),
     ).resolves.toBeUndefined();
-    expect(EducationModule.onGetScoreList).not.toHaveBeenCalled();
+    // The host gets an answer either way — a rejection it cannot describe is
+    // still better than a request that never completes.
+    expect(EducationModule.onGetScoreList).toHaveBeenCalledWith(
+      '',
+      '',
+      zh.education.login_failed_full.replace('{{reason}}', 'plain string'),
+    );
+  });
+
+  it('handles a non-Error rejection during fetch without throwing', async () => {
+    (getScoreList as jest.Mock).mockRejectedValueOnce('plain string');
+    await expect(
+      educationCallableModule.updateScoreList(),
+    ).resolves.toBeUndefined();
+    expect(EducationModule.onGetScoreList).toHaveBeenCalledWith(
+      '',
+      '',
+      zh.education.score_fetch_failed_with_reason.replace(
+        '{{reason}}',
+        'plain string',
+      ),
+    );
   });
 });
 
