@@ -15,6 +15,15 @@ import i18n from '@/i18n/i18n';
 import Log from '@/modules/NativeLog';
 
 /**
+ * The host app hands each request to one entry point and waits for that
+ * entry point's callback, so a rejection that reports nothing — or reports
+ * through the wrong callback — leaves it waiting forever. Every rejection
+ * therefore has to produce a message, whatever was thrown.
+ */
+const describeError = (e: unknown): string =>
+  e instanceof Error ? e.message : String(e);
+
+/**
  * @author orangeboyChen
  * @version 1.0
  * @date 2026/1/22 14:25
@@ -73,13 +82,11 @@ const updateScoreList = async () => {
   try {
     await loginEducation();
   } catch (e: unknown) {
-    if (e instanceof Error) {
-      EducationModule.onGetScoreList(
-        '',
-        '',
-        i18n.t('education.login_failed_full', {reason: e.message}),
-      );
-    }
+    EducationModule.onGetScoreList(
+      '',
+      '',
+      i18n.t('education.login_failed_full', {reason: describeError(e)}),
+    );
     return;
   }
 
@@ -101,15 +108,16 @@ const updateScoreList = async () => {
       userInfo.studentId = studentID;
     }
   } catch (e: unknown) {
-    if (e instanceof Error) {
-      EducationModule.onGetCourseList(
-        [],
-        [],
-        i18n.t('education.score_fetch_failed_with_reason', {
-          reason: e.message,
-        }),
-      );
-    }
+    // Reports through the score callback: the host is waiting on this one, and
+    // answering on the course callback instead would both leave that wait
+    // hanging and hand the course list a failure it did not ask for.
+    EducationModule.onGetScoreList(
+      '',
+      '',
+      i18n.t('education.score_fetch_failed_with_reason', {
+        reason: describeError(e),
+      }),
+    );
     return;
   }
   const scoreListResult = JSON.stringify(scoreList);
