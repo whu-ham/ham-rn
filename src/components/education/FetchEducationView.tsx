@@ -8,6 +8,7 @@ import '@/i18n/i18n';
 import type {StyleProp, TextStyle, ViewStyle} from 'react-native';
 import {ActivityIndicator, Text, View} from 'react-native';
 import Log from '@/modules/NativeLog';
+import {describeError} from '@/utils/error';
 import {CasReAuthLoginError} from '@/business/education/api';
 import {useTranslation} from 'react-i18next';
 import {useColor} from '@/utils/color/color';
@@ -52,12 +53,16 @@ const FetchEducationView = ({
       return;
     }
     doLoginAndFetch().catch(err => {
-      Log.e(tag, `doFetch - error! err=${JSON.stringify(err)}`);
+      // `describeError`, not `JSON.stringify`: the latter throws outright on an
+      // error carrying a circular reference, and a throw here — inside the only
+      // handler for this rejection — would leave the host waiting on a callback
+      // that never comes, with the screen on loading the whole time.
+      Log.e(tag, `doFetch - error! err=${describeError(err)}`);
       if (err instanceof CasReAuthLoginError) {
         setReAuthUrl(err.url);
         setStage(EducationStage.REAUTH_LOGIN);
       } else {
-        onError(err.message);
+        onError(describeError(err));
       }
     });
   }, [stage]);
@@ -70,13 +75,13 @@ const FetchEducationView = ({
         onGetTicketUrl={ticketUrl => {
           fetch(ticketUrl)
             .then(() => {
-              doFetch().catch(err => {
-                onError(err.message);
+              doFetch().catch((err: unknown) => {
+                onError(describeError(err));
               });
             })
-            .catch((err: Error) => {
-              Log.e(tag, `fetch ticketUrl - error! err=${err}`);
-              onError(err.message);
+            .catch((err: unknown) => {
+              Log.e(tag, `fetch ticketUrl - error! err=${describeError(err)}`);
+              onError(describeError(err));
             });
           setStage(EducationStage.LOAD_EDUCATION);
         }}

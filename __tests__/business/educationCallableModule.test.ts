@@ -203,7 +203,13 @@ describe('educationCallableModule.updateCourseList', () => {
     await expect(
       educationCallableModule.updateCourseList(2026, 1),
     ).resolves.toBeUndefined();
-    expect(EducationModule.onGetCourseList).not.toHaveBeenCalled();
+    // The host gets an answer either way — a rejection it cannot describe is
+    // still better than a request that never completes.
+    expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+      [],
+      [],
+      zh.education.login_failed_full.replace('{{reason}}', 'plain string'),
+    );
   });
 
   it('handles a non-Error rejection during fetch without throwing', async () => {
@@ -211,7 +217,14 @@ describe('educationCallableModule.updateCourseList', () => {
     await expect(
       educationCallableModule.updateCourseList(2026, 1),
     ).resolves.toBeUndefined();
-    expect(EducationModule.onGetCourseList).not.toHaveBeenCalled();
+    expect(EducationModule.onGetCourseList).toHaveBeenCalledWith(
+      [],
+      [],
+      zh.education.course_fetch_failed_with_reason.replace(
+        '{{reason}}',
+        'plain string',
+      ),
+    );
   });
 });
 
