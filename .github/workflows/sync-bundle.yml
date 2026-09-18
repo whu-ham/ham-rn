@@ -129,6 +129,25 @@ jobs:
             done
           fi
 
+          # res/raw/keep.xml is rewritten from scratch by the RN bundler on every
+          # bundle (createKeepFileAsync in @react-native/community-cli-plugin), so the
+          # copy above silently drops any rule ham-android declares by hand. Losing
+          # @string/agc_* there let the release resource shrinker strip the AGC config,
+          # which crashes the app on launch with "url is null". Merge the pre-sync list
+          # back in instead of letting the generated file win.
+          keep_rel="android/app/src/main/res/raw/keep.xml"
+          if [ -f "$keep_rel" ] && git cat-file -e "HEAD:$keep_rel" 2>/dev/null; then
+            keep_list() {
+              tr -d '\n' | grep -o 'tools:keep="[^"]*"' | head -1 \
+                | sed 's/^tools:keep="//; s/"$//' | tr ',' '\n' \
+                | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$'
+            }
+            merged=$({ git show "HEAD:$keep_rel" | keep_list; keep_list < "$keep_rel"; } | sort -u | paste -sd, -)
+            if [ -n "$merged" ]; then
+              printf '<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="%s" />\n' "$merged" > "$keep_rel"
+            fi
+          fi
+
           # Sync modules
           rm -rf modules
           cp -r $GITHUB_WORKSPACE/src/modules modules
