@@ -5,7 +5,7 @@ import type {ScoreJsItem} from '@/business/education/scorecalc/type';
 /**
  * Sociology College (社会学院) F2 score calculation.
  *
- * Formula: F2 = 100% × b1 + 2% × b2
+ * Formula: F2 = 100% × b1 + 0.2% × b2
  *   - b1 = weighted average of all 必修 courses + up to 2 专业选修 courses.
  *   - b2 = weighted average of up to 4 elective courses.
  *
@@ -79,7 +79,7 @@ defineEmbed((scoreList, userInfo) => {
       const b1List = [...b1Base, ...b1Extra];
       const b1Avg = weightedAvg(b1List);
       const b2Avg = weightedAvg(b2List);
-      const f2 = b1Avg + 0.02 * b2Avg;
+      const f2 = b1Avg + 0.002 * b2Avg;
 
       if (f2 > bestF2) {
         bestF2 = f2;
