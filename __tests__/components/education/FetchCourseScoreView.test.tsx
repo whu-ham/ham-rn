@@ -617,6 +617,41 @@ describe('FetchScoreView', () => {
     );
   });
 
+  // The hosts read an absent errorMessage as success, so a rejection the view
+  // cannot describe still has to produce a message. Reporting `undefined` here
+  // handed them an empty score list and had them write it to the database.
+  it('reports a non-Error rejection with the thrown value as the reason', async () => {
+    (getScoreList as jest.Mock).mockRejectedValue('plain string');
+    await render(<FetchScoreView />);
+    await waitFor(() =>
+      expect(EducationModule.onGetScoreList).toHaveBeenCalledWith(
+        '',
+        '',
+        'plain string',
+      ),
+    );
+  });
+
+  // Regression: the handler stringified the error for its log line, which
+  // throws outright on a circular reference. The throw landed inside the only
+  // handler for the rejection, so nothing was reported at all and the screen
+  // sat on loading for as long as the sheet stayed up.
+  it('reports a circular error instead of dying in its own log line', async () => {
+    const circular = new Error('boom') as Error & {self?: unknown};
+    circular.self = circular;
+    (getScoreList as jest.Mock).mockRejectedValue(circular);
+
+    await render(<FetchScoreView />);
+
+    await waitFor(() =>
+      expect(EducationModule.onGetScoreList).toHaveBeenCalledWith(
+        '',
+        '',
+        'boom',
+      ),
+    );
+  });
+
   it('reports a login failure without requesting scores', async () => {
     (loginEducation as jest.Mock).mockRejectedValueOnce(new Error('登录失败'));
     await render(<FetchScoreView />);
