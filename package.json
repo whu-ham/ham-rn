@@ -31,7 +31,7 @@
     "react-i18next": "^17.0.13",
     "react-native": "~0.87.1",
     "react-native-md5": "^1.0.0",
-    "react-native-safe-area-context": "^5.9.1",
+    "react-native-safe-area-context": "^5.10.0",
     "react-native-webview": "14.0.1"
   },
   "devDependencies": {
