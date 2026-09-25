@@ -19,6 +19,7 @@
     "@hot-updater/react-native": "0.36.12",
     "@preeternal/react-native-cookie-manager": "^6.4.1",
     "@react-native-community/cli-platform-android": "^20.2.0",
+    "@react-native-community/cli-platform-ios": "^20.2.0",
     "@types/color": "^4.2.1",
     "@types/react-native-md5": "^1.0.2",
     "babel-plugin-module-resolver": "^5.0.3",
