@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@hot-updater/react-native": "0.36.15",
-    "@preeternal/react-native-cookie-manager": "^6.4.1",
+    "@preeternal/react-native-cookie-manager": "^7.0.0",
     "@react-native-community/cli-platform-android": "^20.2.0",
     "@react-native-community/cli-platform-ios": "^20.2.0",
     "@types/color": "^4.2.1",
