@@ -16,7 +16,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@hot-updater/react-native": "0.36.12",
+    "@hot-updater/react-native": "0.36.15",
     "@preeternal/react-native-cookie-manager": "^6.4.1",
     "@react-native-community/cli-platform-android": "^20.2.0",
     "@react-native-community/cli-platform-ios": "^20.2.0",
@@ -29,10 +29,10 @@
     "i18next": "^26.4.2",
     "jotai": "^3.0.0",
     "react": "^19.3.0",
-    "react-i18next": "^17.0.13",
+    "react-i18next": "^17.0.14",
     "react-native": "~0.87.1",
     "react-native-md5": "^1.0.0",
-    "react-native-safe-area-context": "^5.9.1",
+    "react-native-safe-area-context": "^5.10.0",
     "react-native-webview": "14.0.1"
   },
   "devDependencies": {
@@ -42,8 +42,8 @@
     "@babel/runtime": "^7.29.2",
     "@eslint/compat": "^2.1.1",
     "@eslint/js": "^10.0.1",
-    "@hot-updater/bare": "0.36.12",
-    "@hot-updater/cloudflare": "0.36.12",
+    "@hot-updater/bare": "0.36.15",
+    "@hot-updater/cloudflare": "0.36.15",
     "@react-native-community/cli": "20.2.0",
     "@react-native/babel-preset": "~0.87.1",
     "@react-native/eslint-config": "~0.87.1",
@@ -56,25 +56,25 @@
     "@types/prettier": "^3.0.0",
     "@types/react": "^19.3.0",
     "@types/react-test-renderer": "^19.3.0",
-    "babel-jest": "^30.5.1",
-    "dotenv": "^17.4.2",
+    "babel-jest": "^30.5.2",
+    "dotenv": "^18.0.1",
     "esbuild": "^0.28.2",
-    "eslint": "10.10.0",
+    "eslint": "10.11.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-native": "^5.0.0",
-    "hot-updater": "0.36.12",
+    "hot-updater": "0.36.15",
     "husky": "^9.1.7",
-    "jest": "^30.5.1",
+    "jest": "^30.5.2",
     "jiti": "^2.7.0",
     "lint-staged": "^17.5.1",
-    "prettier": "3.9.6",
+    "prettier": "3.9.8",
     "react-test-renderer": "^19.3.0",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.69.0",
-    "wrangler": "^4.131.0"
+    "wrangler": "^4.135.0"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -104,7 +104,7 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "@hot-updater/react-native@0.36.12": "patches/@hot-updater__react-native@0.36.12.patch",
+      "@hot-updater/react-native@0.36.15": "patches/@hot-updater__react-native@0.36.15.patch",
       "react-native-webview@14.0.1": "patches/react-native-webview@14.0.1.patch"
     }
   }
