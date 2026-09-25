@@ -10,9 +10,21 @@ const CODEGEN_BASE = {
 };
 
 const KEEP_DEV_DEPS = ['hot-updater', '@react-native-community/cli', 'husky'];
+const PLATFORM_CLI_DEPS = {
+  ios: '@react-native-community/cli-platform-ios',
+  android: '@react-native-community/cli-platform-android',
+} as const;
 
-function readBasePkg() {
-  const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+type PackageJson = {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  [key: string]: unknown;
+};
+
+function readBasePkg(): PackageJson {
+  const pkg = JSON.parse(
+    fs.readFileSync('package.json', 'utf8'),
+  ) as PackageJson;
 
   // Only keep specified devDependencies
   const originalDevDeps = pkg.devDependencies ?? {};
@@ -51,6 +63,29 @@ function getModulesProvider(): Record<string, string> {
     );
 }
 
+function getPlatformPackage(
+  pkg: PackageJson,
+  platform: keyof typeof PLATFORM_CLI_DEPS,
+): PackageJson {
+  const platformCli = PLATFORM_CLI_DEPS[platform];
+  const dependencies = pkg.dependencies ?? {};
+  const cliVersion =
+    dependencies[platformCli] ??
+    pkg.devDependencies?.['@react-native-community/cli'];
+
+  if (!cliVersion) {
+    throw new Error(`Missing ${platformCli} version in package metadata`);
+  }
+
+  return {
+    ...pkg,
+    dependencies: {
+      ...dependencies,
+      [platformCli]: cliVersion,
+    },
+  };
+}
+
 function writeJson(filePath: string, data: unknown) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
 }
@@ -60,12 +95,12 @@ function generate() {
   const modulesProvider = getModulesProvider();
 
   writeJson(`${OUTPUT_DIR}/package.ios.json`, {
-    ...pkg,
+    ...getPlatformPackage(pkg, 'ios'),
     codegenConfig: {...CODEGEN_BASE, ios: {modulesProvider}},
   });
 
   writeJson(`${OUTPUT_DIR}/package.android.json`, {
-    ...pkg,
+    ...getPlatformPackage(pkg, 'android'),
     codegenConfig: {
       ...CODEGEN_BASE,
       android: {javaPackageName: 'com.nowcent.ham.rn.nativemodule'},
