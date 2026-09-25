@@ -36,10 +36,10 @@
     "react-native-webview": "14.0.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.6",
-    "@babel/preset-env": "^7.28.6",
-    "@babel/preset-typescript": "^7.28.5",
-    "@babel/runtime": "^7.29.2",
+    "@babel/core": "^8.0.6",
+    "@babel/preset-env": "^8.0.6",
+    "@babel/preset-typescript": "^8.0.1",
+    "@babel/runtime": "^8.0.5",
     "@eslint/compat": "^2.1.1",
     "@eslint/js": "^10.0.1",
     "@hot-updater/bare": "0.36.15",
@@ -72,9 +72,9 @@
     "prettier": "3.9.8",
     "react-test-renderer": "^19.3.0",
     "tsx": "^4.23.15",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.69.0",
-    "wrangler": "^4.135.0"
+    "typescript": "^7.0.2",
+    "typescript-eslint": "^8.70.1",
+    "wrangler": "^4.136.2"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
