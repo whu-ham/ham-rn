@@ -9,7 +9,13 @@ const CODEGEN_BASE = {
   jsSrcsDir: 'modules',
 };
 
-const KEEP_DEV_DEPS = ['hot-updater', '@react-native-community/cli', 'husky'];
+const KEEP_DEV_DEPS = [
+  'hot-updater',
+  '@react-native-community/cli',
+  '@react-native/codegen',
+  '@react-native/gradle-plugin',
+  'husky',
+];
 const PLATFORM_CLI_DEPS = {
   ios: '@react-native-community/cli-platform-ios',
   android: '@react-native-community/cli-platform-android',
