@@ -30,9 +30,9 @@
     "jotai": "^3.0.0",
     "react": "^19.3.0",
     "react-i18next": "^17.0.14",
-    "react-native": "~0.87.1",
+    "react-native": "~0.88.0",
     "react-native-md5": "^1.0.0",
-    "react-native-safe-area-context": "^5.10.0",
+    "react-native-safe-area-context": "^5.10.1",
     "react-native-webview": "14.0.1"
   },
   "devDependencies": {
